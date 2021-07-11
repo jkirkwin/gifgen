@@ -21,3 +21,13 @@ DEPENDENCIES.
         * libpng            v1.6.37
         * libjpeg-turbo     v62
 
+TOOLING.
+    This software should be built with the provided build files. These require a GCC 
+    installation which supports both C++17 and C++20, as both are used due to limitations
+    in the Boost::GIL library which necessitates the use of C++17 for image input 
+    functionality. 
+
+    Use the following commands to build the software:
+
+        cmake -H. -Bbuild
+        cmake --build build
