@@ -1,5 +1,5 @@
-#ifndef IMAGE_INPUT_HPP
-#define IMAGE_INPUT_HPP
+#ifndef IMAGE_IO_HPP
+#define IMAGE_IO_HPP
 
 #include <boost/gil.hpp> 
 
