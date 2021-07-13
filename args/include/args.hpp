@@ -18,6 +18,7 @@ namespace args {
     // to run the program
     struct program_arguments {
         input_file_type file_type;
+        std::string file_name;
         std::vector<std::string> other_args;
     };
 

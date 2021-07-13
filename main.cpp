@@ -46,26 +46,24 @@ std::string get_image(std::string filename) {
 }
 
 // Draw some lines in the image and write it back to disk
-void edit_and_save_png() {
+void edit_and_save_png(const std::string& filename) {
     // Image object used to house the frames being read
     boost::gil::rgb8_image_t img;
-    auto png_filename = get_image("paint.png");
-    image::read_png_image(png_filename, img);
+    image::read_png_image(filename, img);
 
-    std::cout << "Read " << png_filename << ". Dimensions: " << img.width() << "x" << img.height() << std::endl;
+    std::cout << "Read " << filename << ". Dimensions: " << img.width() << "x" << img.height() << std::endl;
 
     auto view = boost::gil::view(img);
     edit_image(view);
     image::write_png_image("result.png", img);
 }
 
-void edit_and_save_jpeg() {
+void edit_and_save_jpeg(const std::string& filename) {
     // Image object used to house the frames being read
     boost::gil::rgb8_image_t img;
-    auto jpeg_filename = get_image("jpeg_sonic.jpg");
-    image::read_jpeg_image(jpeg_filename, img);
+    image::read_jpeg_image(filename, img);
 
-    std::cout << "Read " << jpeg_filename << ". Dimensions: " << img.width() << "x" << img.height() << std::endl;
+    std::cout << "Read " << filename << ". Dimensions: " << img.width() << "x" << img.height() << std::endl;
 
     auto view = boost::gil::view(img);
     edit_image(view);
@@ -83,12 +81,16 @@ int main(int argc, char **argv) {
         std::cout << std::endl;
     }
 
+    // TODO Add logic to check the validity of the given file
+    //  - Check that it exists
+    //  - Check that it is a jpeg/png image as appropriate
+
     if (args.file_type == args::input_file_type::PNG) {
-        edit_and_save_png();
+        edit_and_save_png(args.file_name);
     }
     else {
         assert (args.file_type == args::input_file_type::JPEG);
-        edit_and_save_jpeg();
+        edit_and_save_jpeg(args.file_name);
     }
 
     return 0;
