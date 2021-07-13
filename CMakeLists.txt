@@ -19,11 +19,11 @@ find_package(Boost REQUIRED)
 # find_package(Catch2 REQUIRED) # TODO Add catch support
 
 # Add image IO subproject built with C++17
-add_subdirectory(image_input)
+add_subdirectory(image_io)
 
 # Add main application to demo PNG/JPEG input
 add_executable(main main.cpp)
-target_include_directories(main PRIVATE image_input/include)
-target_link_libraries(main image_input)
+target_include_directories(main PRIVATE image_io/include)
+target_link_libraries(main image_io)
 
 # TODO Add coverage and sanitization stuff

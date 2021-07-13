@@ -1,4 +1,4 @@
-project(image_input LANGUAGES CXX)
+project(image_io LANGUAGES CXX)
 
 # Boost::GIL's IO extension has not yet been upgraded 
 # to be C++20-compatible, so we have to use C++17 for 
@@ -10,6 +10,6 @@ find_package(PNG REQUIRED)
 
 include_directories(include)
 
-set(IMAGE_LIB_SOURCES image_input.cpp)
+set(IMAGE_LIB_SOURCES image_io.cpp include/image_io.hpp)
 add_library(${PROJECT_NAME} STATIC ${IMAGE_LIB_SOURCES})
 target_link_libraries(${PROJECT_NAME} ${JPEG_LIBRARY} ${PNG_LIBRARY})
