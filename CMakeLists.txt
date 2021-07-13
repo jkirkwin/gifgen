@@ -21,9 +21,12 @@ find_package(Boost REQUIRED)
 # Add image IO subproject built with C++17
 add_subdirectory(image_io)
 
+# Add other C++20 sub-modules
+add_subdirectory(args)
+
 # Add main application to demo PNG/JPEG input
 add_executable(main main.cpp)
-target_include_directories(main PRIVATE image_io/include)
-target_link_libraries(main image_io)
+target_include_directories(main PRIVATE image_io/include args/include)
+target_link_libraries(main image_io args)
 
 # TODO Add coverage and sanitization stuff
