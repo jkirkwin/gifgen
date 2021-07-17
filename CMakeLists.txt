@@ -16,17 +16,46 @@ set(CMAKE_VERBOSE_MAKEFILE true)
 
 # Imports and includes
 find_package(Boost REQUIRED)
-# find_package(Catch2 REQUIRED) # TODO Add catch support
+find_package(Catch2 REQUIRED)
+
+# Coverage option and shared coverage setup logic
+option(ENABLE_COVERAGE "Enable code coverage with Lcov" false)
+
+if(ENABLE_COVERAGE)
+    # Ensure build type is debug before continuing.
+    message(STATUS "Forcing CMAKE_BUILD_TYPE to DEBUG")
+    set(CMAKE_BUILD_TYPE Debug)
+
+    # Include the main lcov machinery and add the necessary compiler flags
+    include(CodeCoverage.cmake)
+    append_coverage_compiler_flags()
+endif()
+
+function(ADD_COVERAGE_TARGET TEST_TARGET)
+    if (ENABLE_COVERAGE)
+        set(COVERAGE_TARGET_NAME ${TEST_TARGET}_coverage)
+        message(STATUS "Adding coverage target ${COVERAGE_TARGET_NAME}")
+
+        setup_target_for_coverage_lcov(
+            NAME ${COVERAGE_TARGET_NAME}
+            EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/${TEST_TARGET} 
+            LCOV_ARGS --rc lcov_branch_coverage=1
+            GENHTML_ARGS --legend --branch-coverage
+            DEPENDENCIES ${TEST_TARGET}
+        )
+    else()
+        message(STATUS "Skipping coverage target ${TEST_TARGET} (ENABLE_COVERAGE is OFF)")
+    endif()
+endfunction()
 
 # Add image IO subproject built with C++17
 add_subdirectory(image_io)
 
 # Add other C++20 sub-modules
 add_subdirectory(args)
+add_subdirectory(lzw)
 
 # Add main application to demo PNG/JPEG input
 add_executable(main main.cpp)
 target_include_directories(main PRIVATE image_io/include args/include)
 target_link_libraries(main image_io args)
-
-# TODO Add coverage and sanitization stuff
