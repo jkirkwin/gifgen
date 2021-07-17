@@ -1,8 +1,7 @@
 #include "lzw.hpp"
 
+// TODO Remove this file if not needed.
+
 namespace lzw {
 
-    // Dummy function to verify build setup
-    int dummy_function() {return 1;}
-    
 }
