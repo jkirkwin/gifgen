@@ -1,9 +1,50 @@
 #ifndef LZW_HPP
 #define LZW_HPP
 
+#include <cassert>
 #include <cstdint>
+#include <map>
+#include <vector>
 
 namespace lzw {
+
+    // Implementation details for the LZW library. 
+    // Not for external use.
+    namespace internal {
+
+        // Encapsulates the logic needed to convert the bitstream
+        // produced by the LZW encoding process into a sequence of 
+        // bytes.
+        //
+        // Variable-length bit sequences are written to the 
+        // byte_buffer. Once one or more bytes of data have been 
+        // written, they are forwarded downstream to an OutputStream.
+        template <class OutputStream>
+        class byte_buffer {
+            public:
+                // Create a new byte buffer that will write 
+                // byte-aligned data to the given OutputStream.
+                byte_buffer(OutputStream& out) : 
+                    bits_in_buffer(0), 
+                    buffer(0), 
+                    out_stream(out) {}
+
+                // Add the num_bits least significant bits of 
+                // data to the buffer.
+                void insert(std::size_t num_bits, uint16_t data); // TODO implement buffer insertion
+
+                // Flush the current buffer contents to the 
+                // output stream. If the number of dirty bits
+                // is not a multiple of 8, the unused bits will 
+                // be zeros.
+                void flush(); // TODO implement
+
+            private:
+                std::size_t bits_in_buffer;
+                uint32_t buffer; // TODO Might make sense for this to be smaller.
+                OutputStream &out_stream;
+        };
+    }
 
     // A class which is used to encode a sequence of 8-bit values
     // into a GIF-compliant LZW-encoded byte-stream.
@@ -45,11 +86,16 @@ namespace lzw {
 
         using input_symbol_type = uint8_t;
 
-        // The maximum code size is 12 bits, so a 16 bit code representation
-        // is sufficient. 
+        // Maximum code size is 12 bits, so 16 bits is enough for all codes. 
         using code_type = uint16_t; 
         
         using size_type = std::size_t;
+
+        // The maximal number of bits that may be used for an encoded
+        // value.
+        constexpr static size_type max_code_size() noexcept {
+            return MAX_CODE_SIZE;
+        }
 
         // Creates an lzw encoder with an empty dictionary and the
         // provided number of bits to be used to encode output data
@@ -64,12 +110,32 @@ namespace lzw {
         //
         // starting_bits should be at least as large as the number
         // of bits required to represent every pixel in the colour 
-        // table.
-        lzw_encoder(size_type starting_bits, OutputStream& out); // TODO implement and test constructor
+        // table, and must not be less than 3;
+        lzw_encoder(size_type starting_bits, OutputStream& out) : 
+                    starting_code_size(starting_bits), 
+                    current_code_size(starting_bits + 1),
+                    byte_buf(out) {
+            assert (starting_bits >= 3);
+            assert (starting_bits <= max_code_size());
+
+            // TODO Initialize the dictionary to hold the first 2**starting_bits values
+
+            next_code = eoi_code() + 1;
+
+            // According to various sources online, the safest thing to 
+            // do is to start with a clear code to guarantee the 
+            // decompressor won't start with non-standard values in its
+            // dictionary.
+            // TODO Send the clear code with write_code(clear_code())
+
+            // TODO implement and test constructor
+        }
 
         // Destroys the lzw_encoder after flushing any unwritten data
         // to the output stream and sending the EOI marker.
-        ~lzw_encoder(); // TODO implement and test destructor
+        ~lzw_encoder() {
+            // TODO implement and test destructor. Should just need to call flush.
+        } 
 
         // Encodes the single value i. This operation may or may not
         // result in the downstream object receiving encoded data, 
@@ -80,7 +146,7 @@ namespace lzw {
         //     - could use the clear code or could just continue 
         //       encoding stuff using 12 bits and stop adding new 
         //       sequences to the dictionary.
-        // TODO implement and test encode overloads and operator<<
+        // TODO implement and test encode overloads and operator<<. Use write_code().
         void encode(input_symbol_type i);
         lzw_encoder& operator<<(input_symbol_type i); // TODO this may need to be defined outside the class?
 
@@ -94,33 +160,48 @@ namespace lzw {
     
         // Returns the number of bits currently being used for 
         // encoded values encoding.
-        size_type code_size() const; // TODO implement and test code_size
+        size_type code_size() const noexcept {
+            return current_code_size; // TODO test code_size
+        } 
 
         // Returns the current clear code
-        code_type clear_code() const; // TODO implement and test clear_code
+        code_type clear_code() const noexcept {
+            return 1 << (code_size() - 1); // TODO test clear_code
+        } 
 
         // Returns the current End of Information code
-        code_type eoi_code() const; // TODO implement and test eoi_code
+        code_type eoi_code() const noexcept {
+            return clear_code() + 1; // TODO test eoi_code
+        }
 
         // Encodes and writes any buffered data to the output 
         // stream, followed by the EOI marker.
-        void flush(); // TODO implement and test flush
+        void flush(); // TODO implement and test flush. Encode current data and then write the final byte 
 
     private:
+        using symbol_string_type = std::vector<input_symbol_type>;
+        using dict_type = std::map<symbol_string_type, code_type>; // TODO consider other options for this 
+
+        const static size_type MAX_CODE_SIZE = 12;
+
+        // Bit sizes
         size_type starting_code_size;
         size_type current_code_size;
 
-        // TODO Need a vector or similar to hold current buffer 
-        // of input symbols
+        // The next code to be added to the dictionary
+        code_type next_code;
 
-        // TODO Need a dictionary implementation. 
-        //  - Keys are sequences of bytes.
-        //  - Values are code_type's
-        //  - The maximum number of entries is 4096 (12 bits max for code sizes)
-        // To start we could probably use strings or vector<uint8_t> as keys in a
-        // map or unordered_map
-        // Map might be okay because we'd be unlikely to have lots of patterns of the same
-        // length with long, common prefixes. Vector provides lexicographic comparison for us.
+        // Current sequence of matched symbols
+        symbol_string_type symbol_buf;
+
+        dict_type dict;
+
+        // Holds partial bytes from previously encoded sequences.
+        internal::byte_buffer<OutputStream> byte_buf;
+
+        // Adds the code to the bit buffer and writes part or all of 
+        // the buffer to the output stream.
+        void write_code(code_type code); // TODO implement write_code
     };
 }
 
