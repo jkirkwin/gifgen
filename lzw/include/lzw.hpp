@@ -180,90 +180,133 @@ namespace lzw {
 
         // Creates an lzw encoder with an empty dictionary and the
         // provided number of bits to be used to encode output data
-        // to begin with. Encoded data will be written to the provided
-        // OutputStream one byte at a time.
+        // to begin with. This value must be such that all the 
+        // literals to be encoded can fit in symbols of that many bits.
+        //
+        // Encoded data will be written to the provided OutputStream 
+        // one byte at a time.
         // 
         // The number of bits required to encode output 
         // data may increase as the size of the dictionary grows.
         // The first code that is written will have size 
-        // starting_bits+1 due to the extra clear and EOI codes 
-        // discussed above.
-        //
-        // starting_bits should be at least as large as the number
-        // of bits required to represent every pixel in the colour 
-        // table, and must not be less than 3;
+        // starting_bits + 1.
         lzw_encoder(size_type starting_bits, OutputStream& out) : 
                     starting_code_size(starting_bits), 
                     current_code_size(starting_bits + 1),
+                    flushed(false),
                     byte_buf(out) {
             assert (starting_bits >= 3);
-            assert (starting_bits <= max_code_size());
+            assert (starting_bits <= 8);
 
-            // TODO Initialize the dictionary to hold the first 2**starting_bits values
-
-            next_code = eoi_code() + 1;
-
-            // According to various sources online, the safest thing to 
-            // do is to start with a clear code to guarantee the 
-            // decompressor won't start with non-standard values in its
-            // dictionary.
-            // TODO Send the clear code with write_code(clear_code())
-
-            // TODO implement and test constructor
+            // Initialize the dictionary and send a clear code to
+            // start the data stream.
+            clear();
         }
 
         // Destroys the lzw_encoder after flushing any unwritten data
         // to the output stream and sending the EOI marker.
         ~lzw_encoder() {
-            // TODO implement and test destructor. Should just need to call flush.
+            if (!flushed) {
+                flush();
+            }
         } 
 
         // Encodes the single value i. This operation may or may not
         // result in the downstream object receiving encoded data, 
         // depending on the state of the dictionary. 
         //
-        // TODO need to document what happens if we run out of space 
-        // in the dictionary.
-        //     - could use the clear code or could just continue 
-        //       encoding stuff using 12 bits and stop adding new 
-        //       sequences to the dictionary.
-        // TODO implement and test encode overloads and operator<<. Use write_code().
-        void encode(input_symbol_type i);
-        lzw_encoder& operator<<(input_symbol_type i); // TODO this may need to be defined outside the class?
+        // In the event that the internal dictionary becomes full,
+        // a clear code will be emitted and the dictionary will be 
+        // rebuilt.
+        void encode(input_symbol_type i) {
+            // Add the provided symbol to the current matched sequence
+            symbol_string_type augmented = symbol_buf;
+            augmented.push_back(i);
+
+            auto it = dict.find(augmented);
+            if (it != dict.end()) {
+                // Augmented string has been seen before. Use
+                // swap to add i to the buffer without risking
+                // possible double re-allocation of memory from 
+                // duplicate push_back calls. 
+                std::swap(symbol_buf, augmented);
+            }
+            else {
+                // Write the code for the currently matched string
+                // and clear the symbol buffer.
+                encode_buffered_symbols();
+
+                // If the dictionary is full and we've seen a new pattern, 
+                // clear the dictionary and start rebuilding it.
+                if (code_size() == max_code_size()) {
+                    clear();
+                }
+
+                // Add the augmented string to the dictionary 
+                add_code_for_string(augmented);
+
+                assert (symbol_buf.empty());
+                symbol_buf.push_back(i);
+            }
+        }
+
+        // A convenience wrapper around encode(). See
+        // above for details.
+        lzw_encoder& operator<<(input_symbol_type i) {
+            encode(i);
+            return *this;
+        }
 
         // Encodes a sequence of values represented by the begin 
         // and end input iterators. The result of dereferencing
         // an InputIterator must be an input_symbol_type.
         // See encode() for more information. 
         template <class InputIterator>
-        void encode(InputIterator begin, InputIterator end);
-        // TODO Try using std::for_each(begin, end, encode);
+        void encode(InputIterator begin, InputIterator end) {
+            while (begin != end) {
+                encode(*begin);
+                ++begin;
+            }
+        }
     
         // Returns the number of bits currently being used for 
         // encoded values encoding.
         size_type code_size() const noexcept {
-            return current_code_size; // TODO test code_size
+            return current_code_size;
         } 
 
         // Returns the current clear code
         code_type clear_code() const noexcept {
-            return 1 << (code_size() - 1); // TODO test clear_code
+            return 1 << starting_code_size;
         } 
 
         // Returns the current End of Information code
         code_type eoi_code() const noexcept {
-            return clear_code() + 1; // TODO test eoi_code
+            return clear_code() + 1;
         }
 
         // Encodes and writes any buffered data to the output 
-        // stream, followed by the EOI marker.
-        void flush(); // TODO implement and test flush. Encode current data and then write the final byte 
+        // stream, followed by the EOI marker. 
+        // Flush should only be called once. After flushing, 
+        // the encoder may not be used to encode further data.
+        void flush() {
+            assert (!flushed);
+            flushed = true;
+
+            // Write any existing symbols which have a corresponding
+            // dictionary entry, followed by the EOI stream terminator.
+            encode_buffered_symbols();
+            write_code(eoi_code());
+
+            byte_buf.flush();
+        }
 
     private:
         using symbol_string_type = std::vector<input_symbol_type>;
-        using dict_type = std::map<symbol_string_type, code_type>; // TODO consider other options for this 
+        using dict_type = std::map<symbol_string_type, code_type>; // TODO consider other options for this. A prefix tree would be much more space-efficient
 
         const static size_type MAX_CODE_SIZE = 12;
+        const static size_type MAX_CODE_VALUE = 4095;
 
         // Bit sizes
         size_type starting_code_size;
@@ -274,15 +317,85 @@ namespace lzw {
 
         // Current sequence of matched symbols
         symbol_string_type symbol_buf;
+        bool flushed;
 
         dict_type dict;
 
-        // Holds partial bytes from previously encoded sequences.
+        // Holds partial bytes from previously encoded sequences
+        // and writes data downstream.
         internal::byte_buffer<OutputStream> byte_buf;
 
-        // Adds the code to the bit buffer and writes part or all of 
-        // the buffer to the output stream.
-        void write_code(code_type code); // TODO implement write_code
+        // Adds the code to the bit buffer. May cause data to be written
+        // downstream.
+        void write_code(code_type code) {
+            byte_buf.insert(current_code_size, code);
+        } 
+
+        // Encodes the currently buffered symbols and writes the encoding
+        // downstream. Clears the symbol buffer. Does not change the state
+        // of the dictionary.
+        void encode_buffered_symbols() {
+            if (!symbol_buf.empty()) {
+                auto code_entry = dict.find(symbol_buf);
+                write_code(code_entry->second);
+                symbol_buf.clear();
+            }
+        }
+
+        // Inserts the clear code into the output stream
+        // and resets the dictionary to its original state.
+        void clear() {
+            // Write any buffered symbols downstream before sending 
+            // the clear code.
+            encode_buffered_symbols();
+            write_code(clear_code());
+
+            dict.clear();
+
+            // Initialize the dictionary to hold mappings for all 
+            // the literal values [0, 2^starting_bits).
+            uint16_t max_literal(clear_code() - 1);
+            for (uint16_t i = 0; i <= max_literal; ++i)  {
+                input_symbol_type literal(i);
+                symbol_string_type key {literal};
+                code_type value(i);
+
+                // This assertion structure is a little ugly, but lets us
+                // avoid unused variable errors/warnings when asserts are
+                // disabled.
+#ifdef NDEBUG
+                dict.insert(std::make_pair(key, value));
+#else
+                auto result = dict.insert(std::make_pair(key, value));
+                assert (result.second);
+#endif
+            }
+
+            // Reset our starting point in the code list to the 
+            // first empty slot following the EOI code. 
+            next_code = eoi_code() + 1;
+            current_code_size = starting_code_size + 1;
+        }
+
+        // Add the given string of symbols to the dictionary
+        // and update next_code and possibly the current code size.
+        void add_code_for_string(const symbol_string_type& s) {
+            assert (!dict.contains(s));
+            assert (next_code < MAX_CODE_VALUE);
+
+            auto mapping = std::make_pair(s, next_code);
+            dict.insert(mapping);
+            ++next_code;
+
+            // If we've hit the maximum code we can represent with the
+            // current number of bits, increase the code size.
+            // We don't need to worry about overflowing the allowed dict 
+            // size/max code size here.
+            if ((1 << current_code_size) < next_code) {
+                ++current_code_size;
+                assert ((1 << current_code_size) > next_code);
+            }
+        }
     };
 }
 
