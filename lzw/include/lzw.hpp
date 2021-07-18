@@ -19,30 +19,111 @@ namespace lzw {
         // Variable-length bit sequences are written to the 
         // byte_buffer. Once one or more bytes of data have been 
         // written, they are forwarded downstream to an OutputStream.
+        //
+        // Bits from a code word are packed into bytes from least to 
+        // most significant bit, starting a new byte whenever 8 bits
+        // are collected.
         template <class OutputStream>
         class byte_buffer {
             public:
+
                 // Create a new byte buffer that will write 
                 // byte-aligned data to the given OutputStream.
                 byte_buffer(OutputStream& out) : 
                     bits_in_buffer(0), 
                     buffer(0), 
-                    out_stream(out) {}
+                    out_stream(out), 
+                    flush_started(false) {}
+
+                // Destroy the byte buffer after flushing all 
+                // buffered data downstream.
+                ~byte_buffer() {
+                    if (!flush_started) {
+                        flush();
+                    }
+                }
 
                 // Add the num_bits least significant bits of 
                 // data to the buffer.
-                void insert(std::size_t num_bits, uint16_t data); // TODO implement buffer insertion
+                void insert(std::size_t num_bits, uint16_t data) {
+                    assert (!flush_started);
+                    assert (num_bits <= 16);
+
+                    // Empty out the buffer as much as we can
+                    while (bits_in_buffer >= 8) {
+                        write_byte();
+                    }
+
+                    // Isolate the lower num_bits of the provided data
+                    if (num_bits < 16) {
+                        data &= get_n_ones(num_bits);
+                    }
+
+                    // Insert the data to the right of any existing 
+                    // buffer contents
+                    buffer |= (data << bits_in_buffer);
+                    bits_in_buffer += num_bits;
+                } 
 
                 // Flush the current buffer contents to the 
                 // output stream. If the number of dirty bits
                 // is not a multiple of 8, the unused bits will 
-                // be zeros.
-                void flush(); // TODO implement
+                // be zeros. 
+                // flush should only be called once, and no other 
+                // non-const member functions may be called after
+                // invoking flush.
+                void flush() {
+                    assert (!flush_started);
+                    flush_started = true;
+
+                    while(has_data()) {
+                        write_byte();
+                    }
+                }
 
             private:
+                // Since only 16 bits may be inserted at a time, 32 bits
+                // is a safe choice for the internal buffer size to prevent
+                // the possibility of bits being lost due to shift operations.
+                using int_buffer_type = uint32_t;
+
+                // Tracks buffer contents
                 std::size_t bits_in_buffer;
-                uint32_t buffer; // TODO Might make sense for this to be smaller.
+                int_buffer_type buffer;
+
                 OutputStream &out_stream;
+
+                bool flush_started;
+        
+                bool has_data() const noexcept {
+                    return bits_in_buffer > 0;
+                }
+
+                void write_byte() {
+                    assert (bits_in_buffer >= 8 || flush_started);
+                    assert (bits_in_buffer > 0);
+
+                    // Write the least significant 8 bits downstream and
+                    // remove them from the buffer.
+                    uint8_t lsb(buffer & 0xFF);
+                    out_stream << lsb;
+                    buffer = (buffer >> 8) & 0xFF;
+
+                    // Account for possible overflow when updating the 
+                    // remaining bits in case we're in the process of flushing.
+                    if (bits_in_buffer >= 8) {
+                        bits_in_buffer -= 8;
+                    }
+                    else {
+                        bits_in_buffer = 0;
+                    }
+                }
+
+                // Creates a bitmask with n 1's in it, starting from 
+                // the LSbit 
+                uint16_t get_n_ones(std::size_t n) {
+                    return ((1u << n) - 1u);
+                }
         };
     }
 
