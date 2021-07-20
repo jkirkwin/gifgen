@@ -233,20 +233,20 @@ namespace lzw {
             }
             else {
                 // Write the code for the currently matched string
-                // and clear the symbol buffer.
+                // and make the new working string the most recently
+                // matched character.
                 encode_buffered_symbols();
+                symbol_buf.push_back(i);
+                assert (symbol_buf.size() == 1);
 
-                // If the dictionary is full and we've seen a new pattern, 
-                // clear the dictionary and start rebuilding it.
-                if (code_size() == max_code_size()) {
+                // If the dictionary is full, clear it. Otherwise, we add 
+                // the augmented string to the dictionary. 
+                if (next_code > MAX_CODE_VALUE) {                  
                     clear();
                 }
-
-                // Add the augmented string to the dictionary 
-                add_code_for_string(augmented);
-
-                assert (symbol_buf.empty());
-                symbol_buf.push_back(i);
+                else {
+                    add_code_for_string(augmented);
+                }
             }
         }
 
@@ -312,8 +312,10 @@ namespace lzw {
         size_type starting_code_size;
         size_type current_code_size;
 
-        // The next code to be added to the dictionary
-        code_type next_code;
+        // The next code to be added to the dictionary. 
+        // Use a 32-bit value to prevent wrapping back to 0 when
+        // the dictionary gets full.
+        uint32_t next_code;
 
         // Current sequence of matched symbols
         symbol_string_type symbol_buf;
@@ -381,7 +383,7 @@ namespace lzw {
         // and update next_code and possibly the current code size.
         void add_code_for_string(const symbol_string_type& s) {
             assert (!dict.contains(s));
-            assert (next_code < MAX_CODE_VALUE);
+            assert (next_code <= MAX_CODE_VALUE);
 
             auto mapping = std::make_pair(s, next_code);
             dict.insert(mapping);
@@ -391,9 +393,9 @@ namespace lzw {
             // current number of bits, increase the code size.
             // We don't need to worry about overflowing the allowed dict 
             // size/max code size here.
-            if ((1 << current_code_size) < next_code) {
+            if ((1u << current_code_size) < next_code) {
                 ++current_code_size;
-                assert ((1 << current_code_size) > next_code);
+                assert ((1u << current_code_size) > next_code);
             }
         }
     };

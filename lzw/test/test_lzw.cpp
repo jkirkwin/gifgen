@@ -331,16 +331,44 @@ TEST_CASE("Test LZW encoder code size increases", "[lzw][code size]") {
 }
 
 TEST_CASE("Test LZW encoder clears when full", "[lzw][clear][full]") {
-    FAIL("Not implemented");
-    // Start with 8 bit codes and find a simple way to fill up the table
-    // Could look at abc.....
-    // and/or abacadaeafagahaiajakalamanaoapaqarasatauav...azbcbdbebf...bzcdcecf
+    mock_buffer buffer;
+    lzw_encoder<mock_buffer> encoder(8, buffer);
+
+    // Generate an input that will yield a new 2-symbol dictionary entry
+    // for every consecutive pair of characters. The pattern has the form:
+    //      aabacadaeaf.....ayazbbcbdbe...bybzcc.....
+    // But using all 256 characters rather than just the lowercase letters.
+    // 
+    // We generate enough of this input pattern to fill the LZW encoder's 
+    // dictionary.
+    using uchar = unsigned char;
+    std::vector<uchar> input;
+    for (uint16_t outer = 0; outer < 8; ++outer) {
+        uchar outer_char = static_cast<uchar>(outer);
+        input.push_back(outer_char);
+        
+        for (uint16_t inner = outer + 1; inner < 256; ++inner) {
+            uchar inner_char = static_cast<uchar>(inner);
+
+            input.push_back(outer_char);
+            input.push_back(inner_char);
+        }
+    }
+
+    // Number of available codes in the dictionary following the EOI code.
+    std::size_t fillabble_entries = 4096 - 258;
+    assert (input.size() > fillabble_entries + 2);
+
+    // The number of pairs of symbols needed to fill the dictionary
+    std::size_t chars_to_fill_dict = fillabble_entries + 1;
+    REQUIRE(encoder.code_size() == 9);
+    for (std::size_t i = 0; i < chars_to_fill_dict; ++i) {
+        encoder << input.at(i);
+    }
+    REQUIRE(encoder.code_size() == 12);
+
+    // Inserting another symbol which would produce a new dictionary
+    // entry should cause the dictionary to be cleared.
+    encoder.encode(input.at(chars_to_fill_dict));
+    REQUIRE(encoder.code_size() == 9);
 }
-
-
-// TODO Remove one LZW testing done. useful for debugging.
-    // std::cout << "Buffer contents: ";
-    // for (auto c : bytes) {
-    //     std::cout << " " << (int)c;
-    // }
-    // std::cout << '\n';
