@@ -1,3 +1,9 @@
+// This is the entry point for the gifgen application.
+//
+// See CMake.txt for details about the build.
+// See README.txt for details about the project and how 
+// to run this code.
+
 #include <cassert>
 #include <iostream>
 #include "args.hpp"

@@ -55,7 +55,8 @@ add_subdirectory(image_io)
 add_subdirectory(args)
 add_subdirectory(lzw)
 
-# Add main application to demo PNG/JPEG input
-add_executable(main main.cpp)
-target_include_directories(main PRIVATE image_io/include args/include)
-target_link_libraries(main image_io args)
+# Targets for the application
+set (APP_NAME gifgen)
+add_executable(${APP_NAME} gifgen.cpp)
+target_include_directories(${APP_NAME} PRIVATE image_io/include args/include)
+target_link_libraries(${APP_NAME} image_io args)
