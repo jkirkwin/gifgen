@@ -43,6 +43,9 @@ namespace palettize {
         // pixel color at any index.
         bool contains_color(const image::rgb_pixel_t& p); // TODO remove or optimize once median cut is implemented.
 
+        // Gets a reference to the color at index i
+        const image::rgb_pixel_t& at(uint32_t i) const;
+
         // Returns the number of entries in the color table.
         std::size_t size() const;
 

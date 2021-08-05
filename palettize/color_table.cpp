@@ -19,6 +19,7 @@ namespace palettize {
         return distance;
     }
 
+    // TODO Consider just returning the index on its own.
     std::pair<color_table::index_type, image::rgb_pixel_t> 
     color_table::get_nearest_color(const image::rgb_pixel_t& p) const {
         assert (size() > 0);
@@ -55,6 +56,10 @@ namespace palettize {
             }
         }
         return false;
+    }
+
+    const image::rgb_pixel_t& color_table::at(uint32_t i) const {
+        return table.at(i);
     }
 
     // Returns the number of entries in the color table.

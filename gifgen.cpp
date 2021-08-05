@@ -56,19 +56,19 @@ void write_image(const std::string& filename,
     }
 }
 
-// Changes each pixel in the image view to the closest
-// color in the color table.
-template <class ImageView, class ColorTable>
-void quantize_image(const ImageView& image_view, 
-                    const ColorTable& color_table) {
+// Changes each pixel in the image view to the quantized value.
+void recreate_quantized_image(const image::rgb_image_view_t& image_view, 
+                              const palettize::color_table& palette,
+                              std::vector<uint8_t> indices) {    
+    std::cout << "Re-creating quantized image from indices into palette of " << palette.size() << " colors" << std::endl;
+
     auto w = image_view.width();
     auto h = image_view.height();
-    
-    std::cout << "Quantizing image using color table of " << color_table.size() << " colors" << std::endl;
-
-    for (int x = 0; x < w; ++x) {
-        for (int y = 0; y < h; ++y) {
-            image_view(x, y) = color_table.get_nearest_color(image_view(x, y)).second;
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            int i = w * y + x; // Index into index list
+            auto table_index = indices.at(i); // Index into palette
+            image_view(x, y) = palette.at(table_index);
         }
     }
 }
@@ -94,10 +94,11 @@ int main(int argc, char **argv) {
 
     // Quantize/palettize the image
     auto color_table = palettize::create_color_table(image_view);
-    // auto index_list = palettize::palettize_image(image_view, color_table); // TODO
+    auto index_list = palettize::palettize_image(image_view, color_table);
 
-    // As a temporary step, quantize the image in-place and save it to disk.
-    quantize_image(image_view, color_table);
+    // As a temporary step, re-create the quantized image from the index 
+    // list and the color table as a sanity check.
+    recreate_quantized_image(image_view, color_table, index_list);
     std::string result_file = "quantized_result" + file_type_extension(args.file_type);
     write_image(result_file, img, args.file_type);
 
