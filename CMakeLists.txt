@@ -4,7 +4,7 @@ project (cpp_project LANGUAGES CXX)
 
 # Cause the build to fail if C++20 is not available. 
 # Subprojects using the IO extension for Boost::GIL 
-# Will set this to a different version.
+# will set this to a different version.
 set(CXX_STANDARD ON) 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -17,6 +17,7 @@ set(CMAKE_VERBOSE_MAKEFILE true)
 # Imports and includes
 find_package(Boost REQUIRED)
 find_package(Catch2 REQUIRED)
+include_directories(common)
 
 # Coverage option and shared coverage setup logic
 option(ENABLE_COVERAGE "Enable code coverage with Lcov" false)
@@ -54,9 +55,14 @@ add_subdirectory(image_io)
 # Add other C++20 sub-modules
 add_subdirectory(args)
 add_subdirectory(lzw)
+add_subdirectory(palettize)
 
 # Targets for the application
 set (APP_NAME gifgen)
 add_executable(${APP_NAME} gifgen.cpp)
-target_include_directories(${APP_NAME} PRIVATE image_io/include args/include)
-target_link_libraries(${APP_NAME} image_io args)
+
+set (APP_INCLUDE_DIRS image_io/include args/include palettize/include)
+target_include_directories(${APP_NAME} PRIVATE ${APP_INCLUDE_DIRS})
+
+set (APP_LINK_LIBS image_io args palettize)
+target_link_libraries(${APP_NAME} ${APP_LINK_LIBS})

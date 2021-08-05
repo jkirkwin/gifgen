@@ -8,42 +8,8 @@
 #include <iostream>
 #include "args.hpp"
 #include "image_io.hpp"
-
-template <class ImageView>
-void edit_image(ImageView& view) {
-    auto w = view.width();
-    auto h = view.height();
-    
-    // Black out the top-left eighth of the image
-    for (int x = 0; x < w/4; ++x) {
-        for (int y = 0; y < h/4; ++y) {
-            view(x, y) = {0, 0, 0};
-        }
-    }
-
-    // Red line through the middle, horizontally
-    int vertical_midpoint = h/2;
-    for (int x = 0; x < w; ++x) {
-        view(x, vertical_midpoint - 1) = {0xFF, 0, 0};
-        view(x, vertical_midpoint) = {0xFF, 0, 0};
-        view(x, vertical_midpoint + 1) = {0xFF, 0, 0};
-    }
-
-    // Green line in the middle half of the image, vertically
-    int horizontal_midpoint = w/2;
-    int vertical_start = vertical_midpoint/2;
-    int vertical_end = vertical_start*3;
-    for (int y = vertical_start; y < vertical_end; ++y) {
-        view(horizontal_midpoint, y) = {0, 0xFF, 0};
-    }
-
-    // White out the bottom-right eighth of the image
-    for (int x = 3*w/4; x < w; ++x) {
-        for (int y = 3*h/4; y < h; ++y) {
-            view(x, y) = {0xff, 0xff, 0xff};
-        }
-    }
-}
+#include "image_utils.hpp"
+#include "palettize.hpp"
 
 // Get a test file's relative path from its base name
 std::string get_image(std::string filename) {
@@ -51,29 +17,60 @@ std::string get_image(std::string filename) {
     return test_files_dir + filename;
 }
 
-// Draw some lines in the image and write it back to disk
-void edit_and_save_png(const std::string& filename) {
-    // Image object used to house the frames being read
-    boost::gil::rgb8_image_t img;
-    image::read_png_image(filename, img);
-
-    std::cout << "Read " << filename << ". Dimensions: " << img.width() << "x" << img.height() << std::endl;
-
-    auto view = boost::gil::view(img);
-    edit_image(view);
-    image::write_png_image("result.png", img);
+std::string file_type_extension(args::input_file_type file_type) {
+    if (file_type == args::JPEG) {
+        return ".jpeg";
+    }
+    else {
+        assert (file_type == args::PNG);
+        return ".png";
+    }
 }
 
-void edit_and_save_jpeg(const std::string& filename) {
-    // Image object used to house the frames being read
-    boost::gil::rgb8_image_t img;
-    image::read_jpeg_image(filename, img);
+// Read in a JPEG or PNG image and return its GIL representation.
+image::rgb_image_t read_image (const std::string& filename, args::input_file_type file_type) {
+    image::rgb_image_t img;
+    if (file_type == args::input_file_type::PNG) {
+        image::read_png_image(filename, img);
+    }
+    else {
+        assert (file_type == args::input_file_type::JPEG);
+        image::read_jpeg_image(filename, img);
+    }
 
-    std::cout << "Read " << filename << ". Dimensions: " << img.width() << "x" << img.height() << std::endl;
+    std::cout << "Read in image with dimensions " << img.width() << "x" << img.height() << std::endl;
 
-    auto view = boost::gil::view(img);
-    edit_image(view);
-    image::write_jpeg_image("result.jpg", img);
+    return img;
+}
+
+// Writes a JPEG or PNG image to the given file.
+void write_image(const std::string& filename, 
+                 const image::rgb_image_t& img, 
+                 args::input_file_type file_type) {
+    if (file_type == args::input_file_type::PNG) {
+        image::write_png_image(filename, img);
+    }
+    else {
+        assert (file_type == args::input_file_type::JPEG);
+        image::write_jpeg_image(filename, img);
+    }
+}
+
+// Changes each pixel in the image view to the closest
+// color in the color table.
+template <class ImageView, class ColorTable>
+void quantize_image(const ImageView& image_view, 
+                    const ColorTable& color_table) {
+    auto w = image_view.width();
+    auto h = image_view.height();
+    
+    std::cout << "Quantizing image using color table of " << color_table.size() << " colors" << std::endl;
+
+    for (int x = 0; x < w; ++x) {
+        for (int y = 0; y < h; ++y) {
+            image_view(x, y) = color_table.get_nearest_color(image_view(x, y)).second;
+        }
+    }
 }
 
 int main(int argc, char **argv) {
@@ -91,13 +88,18 @@ int main(int argc, char **argv) {
     //  - Check that it exists
     //  - Check that it is a jpeg/png image as appropriate
 
-    if (args.file_type == args::input_file_type::PNG) {
-        edit_and_save_png(args.file_name);
-    }
-    else {
-        assert (args.file_type == args::input_file_type::JPEG);
-        edit_and_save_jpeg(args.file_name);
-    }
+    // Read in the image
+    auto img = read_image(args.file_name, args.file_type);
+    auto image_view = boost::gil::view(img);
+
+    // Quantize/palettize the image
+    auto color_table = palettize::create_color_table(image_view);
+    // auto index_list = palettize::palettize_image(image_view, color_table); // TODO
+
+    // As a temporary step, quantize the image in-place and save it to disk.
+    quantize_image(image_view, color_table);
+    std::string result_file = "quantized_result" + file_type_extension(args.file_type);
+    write_image(result_file, img, args.file_type);
 
     return 0;
 }
