@@ -5,12 +5,13 @@
 namespace args {
 
     void print_help() {
+        // TODO Update the help message
         std::cout 
-            << "main is a demo program which reads in a PNG or JPEG image," << std::endl
-            << "edits it, and writes it back to disk as result.png or result.jpg." << std::endl
+            << "gifgen reads in a single PNG or JPEG image, converts it to GIF," << std::endl
+            << "format, and writes it to disk." << std::endl
             << std::endl
             << "To run the program, use:" << std::endl
-            << "\tmain <filetype option> -f <file name>" << std::endl
+            << "\tgifgen <filetype option> -f <file name> -o <result file name>" << std::endl
             << "where <filetype option> is one of the following values:" << std::endl
             << "\t-p, --png" << std::endl
             << "\t\tIndicates the input file is a PNG image" << std::endl
@@ -19,7 +20,9 @@ namespace args {
             << std::endl
             << "Other options:" << std::endl
             << "\t-f, --file" << std::endl
-            << "\t\tIndicates the input file to be read" << std::endl
+            << "\t\tThe name of the input file to be read" << std::endl
+            << "\t-o, --output" << std::endl
+            << "\t\tThe name of the gif file to be created" << std::endl
             << "\t-h, --help" << std::endl
             << "\t\tShow this help message" << std::endl
             << std::endl;
@@ -29,6 +32,12 @@ namespace args {
         std::cout 
             << "Usage: main <filetype option> -f <file name>" << std::endl 
             << "Use main --help for more information." << std::endl;
+    }
+
+    bool validate_args(const program_arguments& args) {
+        return args.file_type != UNSPECIFIED
+            && args.file_name != ""
+            && args.output_file_name != "";
     }
 
     program_arguments parse_arguments(int argc, char **argv) {
@@ -41,16 +50,17 @@ namespace args {
         // Defines all the long options that we support and
         // their mappings to a char identifier.
         static struct option opts[] = {
-            {"png",   no_argument,       0,  'p'},
-            {"jpeg",  no_argument,       0,  'j'},
-            {"file",  required_argument, 0,  'f'},
-            {"help",  no_argument,       0,  'h'},
-            {0,       0,                 0,  0  }
+            {"png",     no_argument,       0,  'p'},
+            {"jpeg",    no_argument,       0,  'j'},
+            {"file",    required_argument, 0,  'f'},
+            {"output",  required_argument, 0,  'o'},
+            {"help",    no_argument,       0,  'h'},
+            {0,         0,                 0,  0  }
         };
 
         // Defines the short versions of the options and whether they 
-        // take any values
-        const auto optstring = "pjf:h";
+        // take any values. A colon indicates am argument.
+        const auto optstring = "pjf:o:h";
 
         // Iterate over all specified options
         while ((cur_opt = getopt_long(argc, argv, optstring, opts, &ind)) != -1) {
@@ -69,6 +79,10 @@ namespace args {
                 case 'f':
                     args.file_name = optarg;
                     break;
+                
+                case 'o':
+                    args.output_file_name = optarg;
+                    break;
 
                 case 'h':
                     print_help();
@@ -81,7 +95,7 @@ namespace args {
             }
         }
 
-        if (args.file_type == UNSPECIFIED || args.file_name == "") {
+        if (!validate_args(args)) {
             print_usage();
             std::exit(EXIT_FAILURE);
         }
