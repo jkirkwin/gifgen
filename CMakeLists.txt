@@ -61,8 +61,11 @@ add_subdirectory(palettize)
 set (APP_NAME gifgen)
 add_executable(${APP_NAME} gifgen.cpp)
 
-set (APP_INCLUDE_DIRS image_io/include args/include palettize/include)
+set (APP_INCLUDE_DIRS args/include image_io/include palettize/include lzw/include)
 target_include_directories(${APP_NAME} PRIVATE ${APP_INCLUDE_DIRS})
 
 set (APP_LINK_LIBS image_io args palettize)
 target_link_libraries(${APP_NAME} ${APP_LINK_LIBS})
+
+# Add a target for the helper decoding script
+add_executable(degif degif.cpp)
