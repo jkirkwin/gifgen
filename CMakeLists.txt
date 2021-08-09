@@ -56,6 +56,7 @@ add_subdirectory(image_io)
 add_subdirectory(args)
 add_subdirectory(lzw)
 add_subdirectory(palettize)
+add_subdirectory(gif)
 
 # Targets for the application
 set (APP_NAME gifgen)
