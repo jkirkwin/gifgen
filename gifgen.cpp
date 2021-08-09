@@ -24,36 +24,36 @@ image::rgb_image_t read_image (const std::string& filename, args::input_file_typ
         image::read_jpeg_image(filename, img);
     }
 
-    std::cout << "Read in image with dimensions " << img.width() << "x" << img.height() << std::endl;
-
     return img;
 }
 
 int main(int argc, char **argv) {
     auto args = args::parse_arguments(argc, argv);
+    assert (!args.input_files.empty());
 
-    if (!args.other_args.empty()) {
-        std::cout << "Extra string arguments: ";
-        for (const auto& s : args.other_args) {
-            std::cout << s << " ";
-        }
-        std::cout << std::endl;
+    // Read in the first image to get the dimensions. TODO replace this with proper validation as described below.
+    auto first_img = read_image(args.input_files.at(0), args.file_type);
+    auto width = first_img.width();
+    auto height = first_img.height();
+
+    // Create the GIF data stream
+    std::ofstream output_file(args.output_file_name, std::ios::out | std::ios::binary);
+    gif::gif_builder gif_stream(output_file, width, height);
+
+    // Add each frame to the GIF
+    for (const auto& filename : args.input_files) {
+        std::cout << "Adding frame '" << filename << "' to " << args.output_file_name << std::endl;
+        
+        auto img = read_image(filename, args.file_type);
+        auto image_view = boost::gil::view(img);
+        gif_stream.add_frame(image_view);
     }
-
+    
+    gif_stream.complete_stream();
+    
     // TODO Add logic to check the validity of the given files
     //    Check that the input files exist, are of the appropriate type (jpeg/png),
     //    and have the same dimensions
-
-    // Read in the image
-    auto img = read_image(args.file_name, args.file_type);
-    auto image_view = boost::gil::view(img);
-
-    // Open the output file and write the single-image data
-    std::ofstream output_file(args.output_file_name, std::ios::out | std::ios::binary);
-
-    gif::gif_builder gif_stream(output_file, image_view.width(), image_view.height());
-    gif_stream.add_frame(image_view);
-    gif_stream.complete_stream();
 
     return 0;
 }

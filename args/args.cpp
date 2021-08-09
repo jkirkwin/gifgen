@@ -7,20 +7,17 @@ namespace args {
     void print_help() {
         // TODO Update the help message
         std::cout 
-            << "gifgen reads in a single PNG or JPEG image, converts it to GIF," << std::endl
-            << "format, and writes it to disk." << std::endl
+            << "gifgen reads in one or more PNG or JPEG images and embeds them in a GIF file." << std::endl
             << std::endl
             << "To run the program, use:" << std::endl
-            << "\tgifgen <filetype option> -f <file name> -o <result file name>" << std::endl
+            << "\tgifgen <filetype option> <input file 1> <input file 2> [...] -o <result file name>" << std::endl
             << "where <filetype option> is one of the following values:" << std::endl
             << "\t-p, --png" << std::endl
-            << "\t\tIndicates the input file is a PNG image" << std::endl
+            << "\t\tIndicates the input files are PNG images" << std::endl
             << "\t-j, --jpeg" << std::endl
-            << "\t\tIndicates the input file is a JPEG image" << std::endl
+            << "\t\tIndicates the input files are JPEG images" << std::endl
             << std::endl
             << "Other options:" << std::endl
-            << "\t-f, --file" << std::endl
-            << "\t\tThe name of the input file to be read" << std::endl
             << "\t-o, --output" << std::endl
             << "\t\tThe name of the gif file to be created" << std::endl
             << "\t-h, --help" << std::endl
@@ -30,13 +27,13 @@ namespace args {
 
     void print_usage() {
         std::cout 
-            << "Usage: gifgen <filetype option> -f <file name>" << std::endl 
+            << "Usage: gifgen <filetype option> <input files list>" << std::endl 
             << "Use gifgen --help for more information." << std::endl;
     }
 
     bool validate_args(const program_arguments& args) {
         return args.file_type != UNSPECIFIED
-            && args.file_name != ""
+            && args.input_files.size() >= 1
             && args.output_file_name != "";
     }
 
@@ -52,7 +49,6 @@ namespace args {
         static struct option opts[] = {
             {"png",     no_argument,       0,  'p'},
             {"jpeg",    no_argument,       0,  'j'},
-            {"file",    required_argument, 0,  'f'},
             {"output",  required_argument, 0,  'o'},
             {"help",    no_argument,       0,  'h'},
             {0,         0,                 0,  0  }
@@ -60,7 +56,7 @@ namespace args {
 
         // Defines the short versions of the options and whether they 
         // take any values. A colon indicates am argument.
-        const auto optstring = "pjf:o:h";
+        const auto optstring = "pjo:h";
 
         // Iterate over all specified options
         while ((cur_opt = getopt_long(argc, argv, optstring, opts, &ind)) != -1) {
@@ -74,10 +70,6 @@ namespace args {
                         std::exit(EXIT_FAILURE);
                     }
                     args.file_type = static_cast<input_file_type>(cur_opt);
-                    break;
-
-                case 'f':
-                    args.file_name = optarg;
                     break;
                 
                 case 'o':
@@ -95,16 +87,17 @@ namespace args {
             }
         }
 
+        // Add all the non-option arguments to the result. These are the input
+        // files to convert to GIF format.
+        while (optind < argc) {
+            std::string arg = argv[optind];
+            args.input_files.push_back(arg);
+            ++optind;
+        }
+
         if (!validate_args(args)) {
             print_usage();
             std::exit(EXIT_FAILURE);
-        }
-
-        // Add all the non-option arguments to the result
-        while (optind < argc) {
-            std::string arg = argv[optind];
-            args.other_args.push_back(arg);
-            ++optind;
         }
 
         return args;
