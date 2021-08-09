@@ -58,6 +58,7 @@ namespace gif {
         // to the output stream.
         void write_gif_header();
         void write_screen_descriptor();
+        void write_netscape_extension();
         void write_graphics_control_ext();
         void write_image_descriptor(
             const image::rgb_image_view_t&, 
@@ -69,6 +70,9 @@ namespace gif {
             const palettize::color_table&
         );
         void write_gif_trailer();
+
+        // Helper to write the contents of a vector downstream.
+        void write(const std::vector<char>&);
     };
 
 }

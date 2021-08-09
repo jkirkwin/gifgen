@@ -14,6 +14,12 @@ namespace gif {
         return std::make_pair(lsb, msb);
     }
 
+    void gif_builder::write(const std::vector<char>& v) {
+        assert (v.size() > 0);
+        out_file.write(v.data(), v.size());
+    }
+
+
     void gif_builder::write_gif_header() {
         out_file << "GIF89a";
     }
@@ -33,8 +39,38 @@ namespace gif {
         };
 
         assert (screen_descriptor_block.size() == SCREEN_DESCRIPTOR_SIZE);
-        out_file.write(screen_descriptor_block.data(), SCREEN_DESCRIPTOR_SIZE);
+        write(screen_descriptor_block);
     }
+
+    // The NETSCAPE2.0 extension is used to control looping
+    // behaviour and appears once in the stream.
+    void gif_builder::write_netscape_extension() {
+    
+        std::vector<char> netscape_block_header {
+            static_cast<char>(EXTENSION_INTRO_BYTE),
+            static_cast<char>(NETSCAPE_EXT_LABEL_BYTE)
+        };
+        write(netscape_block_header);
+
+        // The netscape block uses data sub-blocks, so we use the 
+        // block buffer to handle the minutiae. The first block 
+        // holds the signature.
+        for (const char c : NETSCAPE_EXT_SIGNATURE) {
+            block_buffer << c;
+        }
+        block_buffer.write_current_block();
+
+        // The second block holds the repetition count. Set this to 
+        // 0 for infinite looping.
+        block_buffer << 0x01          // Sub-block index
+                     << 0x00 << 0x00; // repetition count
+        block_buffer.write_current_block();
+
+        // Terminate the block stream with an empty block.
+        assert (block_buffer.current_block_size() == 0);
+        block_buffer.write_current_block();
+    }
+
 
     // Writes the extension block used for graphics enhancements.
     // Our sole use case for this block is to enable delays between
@@ -53,7 +89,7 @@ namespace gif {
         };
 
         assert (graphics_block.size() == GRAPHIC_CONTROL_BLOCK_SIZE);
-        out_file.write(graphics_block.data(), GRAPHIC_CONTROL_BLOCK_SIZE);
+        write(graphics_block);
     }
 
     void gif_builder::write_image_descriptor(const image::rgb_image_view_t& image_view,
@@ -84,7 +120,7 @@ namespace gif {
         };
 
         assert (image_descriptor_block.size() == IMAGE_DESCRIPTOR_SIZE);
-        out_file.write(image_descriptor_block.data(), IMAGE_DESCRIPTOR_SIZE);
+        write(image_descriptor_block);
     }
 
     void gif_builder::write_local_color_table(const palettize::color_table& local_color_table) {
@@ -108,7 +144,7 @@ namespace gif {
         }
 
         assert (color_table_block.size() == block_size);
-        out_file.write(color_table_block.data(), block_size);
+        write(color_table_block);
     }
 
     // Encodes the image as LZW-compressed color table indices, packages up the
@@ -153,13 +189,18 @@ namespace gif {
             height(static_cast<uint16_t>(h)), 
             delay(static_cast<uint16_t>(d)),
             stream_complete(false) {
+        // Verify pre-conditions
         assert (w > 0);
         assert (h > 0);
         assert (w <= std::numeric_limits<uint16_t>::max());
         assert (h <= std::numeric_limits<uint16_t>::max());
         assert (d <= std::numeric_limits<uint16_t>::max());
+
+        // Write the header and the one-time blocks that come before
+        // any frames.
         write_gif_header();
         write_screen_descriptor();
+        write_netscape_extension();
     }
 
     gif_builder::~gif_builder() {

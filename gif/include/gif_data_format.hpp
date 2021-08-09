@@ -16,7 +16,10 @@ namespace gif {
     constexpr uint8_t GIF_TRAILER_BYTE = 0x3B;
     constexpr uint8_t EXTENSION_INTRO_BYTE = 0x21;
     constexpr uint8_t GRAPHIC_CONTROL_LABEL_BYTE = 0xF9;
+    constexpr uint8_t NETSCAPE_EXT_LABEL_BYTE = 0xFF;
     constexpr uint8_t GRAPHIC_CONTROL_SUB_BLOCK_SIZE = 4;
+
+    const std::string NETSCAPE_EXT_SIGNATURE = "NETSCAPE2.0";
 
     // See the GIF specification for details on the composition 
     // of this packed byte. We set the disposal method, user input 
