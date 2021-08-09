@@ -13,23 +13,8 @@
 #include "palettize.hpp"
 #include "lzw.hpp"
 #include <format> // TODO remove
-
-constexpr uint8_t LZW_CODE_SIZE = 8;
-
-// TODO move these to a GIF header file?
-constexpr std::size_t MAX_IMAGE_SUB_BLOCK_SIZE = 255;
-constexpr std::size_t SCREEN_DESCRIPTOR_SIZE = 7;
-constexpr std::size_t IMAGE_DESCRIPTOR_SIZE = 10;
-
-constexpr uint8_t IMAGE_SEPARATOR_BYTE = 0x2C;
-constexpr uint8_t GIF_TRAILER_BYTE = 0x3B;
-
-    // See the GIF specification for details on the composition
-    // of this packed byte. We set the global color table flag
-    // to 0, the color resolution to 8 (encoded as 7), the sort
-    // flag is set to 0, and the global color table size is 
-    // left as all zeros as well.
-constexpr std::size_t SCREEN_DESCRIPTOR_PACKED_BYTE = 0x70;
+#include "sub_block_buffer.hpp"
+#include "gif_data_format.hpp"
 
 // Read in a JPEG or PNG image and return its GIL representation.
 image::rgb_image_t read_image (const std::string& filename, args::input_file_type file_type) {
@@ -71,13 +56,13 @@ void write_screen_descriptor(std::ofstream& out_file, const image::rgb_image_vie
     std::vector<char> screen_descriptor_block {
         width_lsb, width_msb,
         height_lsb, height_msb,
-        SCREEN_DESCRIPTOR_PACKED_BYTE,
+        gif::SCREEN_DESCRIPTOR_PACKED_BYTE,
         0x00, // Background color. Not used. 
         0x00  // Pixel aspect ratio. Not used.
     };
 
-    assert (screen_descriptor_block.size() == SCREEN_DESCRIPTOR_SIZE);
-    out_file.write(screen_descriptor_block.data(), SCREEN_DESCRIPTOR_SIZE);
+    assert (screen_descriptor_block.size() == gif::SCREEN_DESCRIPTOR_SIZE);
+    out_file.write(screen_descriptor_block.data(), gif::SCREEN_DESCRIPTOR_SIZE);
 }
 
 void write_image_descriptor(std::ofstream& out_file, 
@@ -89,27 +74,23 @@ void write_image_descriptor(std::ofstream& out_file,
     auto [width_lsb, width_msb] = split_numeric_field(width);
     auto [height_lsb, height_msb] = split_numeric_field(height);
 
-    // See the GIF specification for details on the composition
-    // of this packed byte. We set the local color table flag,
-    // and unset the interlace and sort flags in the upper 4 bits.
-    // We encode the size of the local color table in the lower 3 
-    // bits. This is just the bit depth of the color table minus 1.
-    uint8_t encoded_table_size = local_color_table.min_bit_depth() - 1; // TODO Move this computation into the same place as the constants at the top of the file.
-    assert (encoded_table_size <= 7);
-    char local_color_fields = 0x80 | encoded_table_size;
+    // Pack the color bit fields into a byte. See the GIF spec
+    // for more information.
+    char packed_byte = 
+        gif::get_image_descriptor_packed_byte(local_color_table.min_bit_depth());
 
     // Construct the block and write it to the file
     std::vector<char> image_descriptor_block {
-        IMAGE_SEPARATOR_BYTE,
+        gif::IMAGE_SEPARATOR_BYTE,
         0x00, 0x00, // Left offset
         0x00, 0x00, // Top offset
         width_lsb, width_msb,
         height_lsb, height_msb,
-        local_color_fields
+        packed_byte // Color info
     };
 
-    assert (image_descriptor_block.size() == IMAGE_DESCRIPTOR_SIZE);
-    out_file.write(image_descriptor_block.data(), IMAGE_DESCRIPTOR_SIZE);
+    assert (image_descriptor_block.size() == gif::IMAGE_DESCRIPTOR_SIZE);
+    out_file.write(image_descriptor_block.data(), gif::IMAGE_DESCRIPTOR_SIZE);
 }
 
 // Writes the local color table to the data stream
@@ -151,62 +132,31 @@ void write_local_color_table(std::ofstream& out_file, const palettize::color_tab
     out_file.write(color_table_block.data(), block_size);
 }
 
-// TODO Remove this and replace it with something less gross.
-// A simple wrapper around a vector that pushes data
-// received via operator<<.
-template<class T>
-struct vector_insertion_wrapper { // TODO Make a proper class for this
-    std::vector<T>* vec;
-
-    // Inserts a value of type T2 into the vector. T must be construct-able
-    // from a value of type T2.
-    template <class T2>
-    vector_insertion_wrapper& operator<<(T2 datum) {
-        vec->push_back(T(datum));
-        return *this;
-    }
-};
-
 // Encodes the provided list of color table indices into an LZW data stream,
-// packages up the resulting codes into blocks, and writes those blocks to
+// packages up the resulting codes into sub-blocks, and writes those blocks to
 // the output file.
 void write_image_data(std::ofstream& out_file, const std::vector<uint8_t>& indices) {
-    // TODO We need a buffer for the bytes? For now, just insert all of them into 
-    // a vector and iterate over the vector.
-    std::vector<char> encoded_data;
-    vector_insertion_wrapper<char> vec_wrapper {&encoded_data};
+    // The first byte of the image block tells the decoder how many bits
+    // to use for its LZW dictionary.
+    out_file << gif::LZW_CODE_SIZE;
 
-    lzw::lzw_encoder encoder(LZW_CODE_SIZE, vec_wrapper); // TODO Clean this stuff up, and consider using a streaming approach where the thing that's downstream from the lzw encoder automatically writes a subblock as soon as its buffer is full.
+    // The remainder of the image block is made up of data sub-blocks
+    // full of LZW-compressed image data. We set the LZW encoder to forward
+    // directly to a buffer that packs the sub-blocks appropriately.
+    gif::sub_block_buffer block_buffer(out_file);
+    lzw::lzw_encoder encoder(gif::LZW_CODE_SIZE, block_buffer); 
     encoder.encode(indices.begin(), indices.end());
     encoder.flush();
 
-    std::cout << "Encoded " << indices.size() << " indices into " << encoded_data.size() << " bytes" << std::endl;
-
-    out_file << LZW_CODE_SIZE;
-
-    // GIF supports sub-blocks of up to 255 bytes. Write the encoded data 
-    // out in blocks of maximal size until all data has been written.
-    auto data_size = encoded_data.size();
-    auto remaining_bytes = data_size; 
-    while (remaining_bytes > 0) {
-        // For each block, write the number of data bytes that follow
-        std::size_t sub_block_size = std::min(remaining_bytes, MAX_IMAGE_SUB_BLOCK_SIZE);
-        assert (sub_block_size <= 255);
-        uint8_t sub_block_size_byte = static_cast<uint8_t>(sub_block_size);
-
-
-        // Write the data for the sub-block
-        out_file << sub_block_size_byte; // Sub-block header
-        auto starting_index = data_size - remaining_bytes;
-        auto data_ptr = encoded_data.data() + starting_index;
-        out_file.write(data_ptr, sub_block_size);
-
-        remaining_bytes -= sub_block_size;
+    // Write out any remaining data from the buffer in a smaller
+    // sub-block.
+    if (block_buffer.current_block_size() > 0) {
+        block_buffer.write_current_block();
     }
 
-    // No more data follows. Signal the end of the image data with
-    // an empty data sub-block.
-    out_file << uint8_t(0); 
+    // Terminate the image block with an empty sub-block.
+    assert (block_buffer.current_block_size() == 0);
+    block_buffer.write_current_block();
 }
 
 // Encodes the given image as the next frame in the data stream.
@@ -224,7 +174,7 @@ void encode_frame(std::ofstream& out_file, const image::rgb_image_view_t& image_
 }
 
 void write_gif_trailer(std::ofstream& out_file) {
-    out_file << GIF_TRAILER_BYTE;
+    out_file << gif::GIF_TRAILER_BYTE;
 }
 
 int main(int argc, char **argv) {
