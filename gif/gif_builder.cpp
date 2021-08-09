@@ -36,14 +36,34 @@ namespace gif {
         out_file.write(screen_descriptor_block.data(), SCREEN_DESCRIPTOR_SIZE);
     }
 
+    // Writes the extension block used for graphics enhancements.
+    // Our sole use case for this block is to enable delays between
+    // frames.
+    void gif_builder::write_graphics_control_ext() {
+        auto [delay_lsb, delay_msb] = split_numeric_field(delay);
+
+        std::vector<char> graphics_block {
+            static_cast<char>(EXTENSION_INTRO_BYTE),
+            static_cast<char>(GRAPHIC_CONTROL_LABEL_BYTE),
+            static_cast<char>(GRAPHIC_CONTROL_SUB_BLOCK_SIZE),
+            static_cast<char>(GRAPHIC_CONTROL_BLOCK_PACKED_BYTE),
+            delay_lsb, delay_msb,
+            0x00, // Transparent color index. Not used.
+            0x00, // End-of-block marker
+        };
+
+        assert (graphics_block.size() == GRAPHIC_CONTROL_BLOCK_SIZE);
+        out_file.write(graphics_block.data(), GRAPHIC_CONTROL_BLOCK_SIZE);
+    }
+
     void gif_builder::write_image_descriptor(const image::rgb_image_view_t& image_view,
                                              const palettize::color_table& local_color_table) {
         // Break dimension values into bytes
         auto image_width = image_view.width();
         auto image_height = image_view.height();
         
-        assert (static_cast<std::size_t>(image_width) == width);
-        assert (static_cast<std::size_t>(image_height) == height);
+        assert (image_width == width);
+        assert (image_height == height);
 
         auto [width_lsb, width_msb] = split_numeric_field(image_width);
         auto [height_lsb, height_msb] = split_numeric_field(image_height);
@@ -126,16 +146,18 @@ namespace gif {
         out_file << GIF_TRAILER_BYTE;
     }
 
-    gif_builder::gif_builder(std::ostream& out, std::size_t width, std::size_t height) :
+    gif_builder::gif_builder(std::ostream& out, std::size_t w, std::size_t h, std::size_t d) :
             out_file(out), 
             block_buffer(out_file),
-            width(width), 
-            height(height), 
+            width(static_cast<uint16_t>(w)), 
+            height(static_cast<uint16_t>(h)), 
+            delay(static_cast<uint16_t>(d)),
             stream_complete(false) {
-        assert (width > 0);
-        assert (height > 0);
-        assert (width <= std::numeric_limits<uint16_t>::max());
-        assert (height <= std::numeric_limits<uint16_t>::max());
+        assert (w > 0);
+        assert (h > 0);
+        assert (w <= std::numeric_limits<uint16_t>::max());
+        assert (h <= std::numeric_limits<uint16_t>::max());
+        assert (d <= std::numeric_limits<uint16_t>::max());
         write_gif_header();
         write_screen_descriptor();
     }
@@ -149,10 +171,13 @@ namespace gif {
 
     gif_builder& gif_builder::add_frame(const image::rgb_image_view_t& image_view) {
         // For each frame, we need to encode:
+        // 0. Graphics Control Extension
         // 1. Image Descriptor
         // 2. Local Color Table
         // 3. Index-encoded, LZW-compressed image data
-                
+        
+        write_graphics_control_ext();
+
         auto color_palette = palettize::create_color_table(image_view);
         write_image_descriptor(image_view, color_palette);
         write_local_color_table(color_palette);

@@ -15,10 +15,11 @@ namespace gif {
         // Creates a new GIF builder which will write its data to
         // the provided ostream out. The dimensions width and height
         // must be the same for all images that are added to the data
-        // stream. 
-        // Neither dimension may be 0 or so large that it cannot be 
-        // expressed in a 16-bit unsigned integer.
-        gif_builder(std::ostream& out, std::size_t width, std::size_t height); // TODO Add timing value here?
+        // stream. The optional delay parameter measures the time between
+        // frames in hundreths of a second.
+        // All the numeric parameters must be in the range [0, 0xFFFF].
+        gif_builder(std::ostream& out, std::size_t width, 
+                    std::size_t height, std::size_t delay = 0);
         
         // The builder is not copyable or moveable.
         gif_builder(const gif_builder&) = delete;
@@ -47,8 +48,9 @@ namespace gif {
     private:
         std::ostream& out_file;
         gif_block_buffer block_buffer;
-        std::size_t width;
-        std::size_t height;
+        uint16_t width;
+        uint16_t height;
+        uint16_t delay;
         bool stream_complete;
 
         // Each member function is responsible for writing a 
@@ -56,6 +58,7 @@ namespace gif {
         // to the output stream.
         void write_gif_header();
         void write_screen_descriptor();
+        void write_graphics_control_ext();
         void write_image_descriptor(
             const image::rgb_image_view_t&, 
             const palettize::color_table&

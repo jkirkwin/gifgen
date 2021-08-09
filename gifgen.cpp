@@ -38,12 +38,12 @@ int main(int argc, char **argv) {
 
     // Create the GIF data stream
     std::ofstream output_file(args.output_file_name, std::ios::out | std::ios::binary);
-    gif::gif_builder gif_stream(output_file, width, height);
+    gif::gif_builder gif_stream(output_file, width, height, args.delay);
 
     // Add each frame to the GIF
     for (const auto& filename : args.input_files) {
         std::cout << "Adding frame '" << filename << "' to " << args.output_file_name << std::endl;
-        
+
         auto img = read_image(filename, args.file_type);
         auto image_view = boost::gil::view(img);
         gif_stream.add_frame(image_view);
