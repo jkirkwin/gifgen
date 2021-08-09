@@ -32,7 +32,6 @@ namespace gif {
         assert (encoded_table_size <= 7);
         return 0x80 | encoded_table_size;    
     }
-
 }
 
 #endif
