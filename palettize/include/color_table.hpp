@@ -46,6 +46,11 @@ namespace palettize {
         // Gets a reference to the color at index i
         const image::rgb_pixel_t& at(uint32_t i) const;
 
+        // TODO Add iterators so we can easily iterate over the color table to write it to the output file
+
+        // Returns the number of bits needed to index into the table. 
+        uint8_t min_bit_depth() const;
+
         // Returns the number of entries in the color table.
         std::size_t size() const;
 

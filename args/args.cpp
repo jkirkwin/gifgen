@@ -30,8 +30,8 @@ namespace args {
 
     void print_usage() {
         std::cout 
-            << "Usage: main <filetype option> -f <file name>" << std::endl 
-            << "Use main --help for more information." << std::endl;
+            << "Usage: gifgen <filetype option> -f <file name>" << std::endl 
+            << "Use gifgen --help for more information." << std::endl;
     }
 
     bool validate_args(const program_arguments& args) {

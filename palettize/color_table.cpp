@@ -62,6 +62,20 @@ namespace palettize {
         return table.at(i);
     }
 
+    uint8_t color_table::min_bit_depth() const {
+        assert  (size() <= max_size());
+
+        uint16_t size_value = size() - 1;
+        uint8_t bit_depth = 0;
+        while (size_value != 0) {
+            ++bit_depth;
+            size_value >>= 1u;
+        }
+
+        return bit_depth;
+    }// TODO Test this
+
+
     // Returns the number of entries in the color table.
     std::size_t color_table::size() const {
         return table.size();
