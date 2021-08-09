@@ -3,7 +3,7 @@
 
 #include <ostream>
 #include "image_utils.hpp"
-#include "sub_block_buffer.hpp" // TODO rename the sub_block_buffer to gif_block_buffer
+#include "gif_block_buffer.hpp"
 #include "../palettize/include/palettize.hpp" // TODO Fix this. This is the only way I've been able to make the include work, but it's unacceptable.
 
 namespace gif {
@@ -46,7 +46,7 @@ namespace gif {
 
     private:
         std::ostream& out_file;
-        sub_block_buffer block_buffer;
+        gif_block_buffer block_buffer;
         std::size_t width;
         std::size_t height;
         bool stream_complete;

@@ -1,5 +1,5 @@
-#ifndef GIF_SUB_BLOCK_BUFFER_HPP
-#define GIF_SUB_BLOCK_BUFFER_HPP
+#ifndef GIF_BLOCK_BUFFER_HPP
+#define GIF_BLOCK_BUFFER_HPP
 
 #include <array>
 #include <ostream>
@@ -14,29 +14,29 @@ namespace gif {
     // up explicitly.
     // Once a sub-block is packaged, it is written to the output 
     // file in one operation.    
-    class sub_block_buffer {
+    class gif_block_buffer {
     public:
 
-        // Construct a new sub_block_buffer whose output will be 
+        // Construct a new gif_block_buffer whose output will be 
         // written to the provided output stream. 
-        sub_block_buffer(std::ostream& out);
+        gif_block_buffer(std::ostream& out);
 
         // Buffers are neither copyable nor moveable.
-        sub_block_buffer(sub_block_buffer&) = delete;
-        sub_block_buffer& operator=(sub_block_buffer&) = delete;
-        sub_block_buffer(sub_block_buffer&&) = delete;
-        sub_block_buffer& operator=(sub_block_buffer&&) = delete;
+        gif_block_buffer(const gif_block_buffer&) = delete;
+        gif_block_buffer& operator=(const gif_block_buffer&) = delete;
+        gif_block_buffer(gif_block_buffer&&) = delete;
+        gif_block_buffer& operator=(gif_block_buffer&&) = delete;
 
-        // Destory the sub_block_buffer. If there is any data 
+        // Destory the gif_block_buffer. If there is any data 
         // still in the buffer, it will be written in a smaller
         // than maximal block before the buffer is destroyed. 
-        ~sub_block_buffer();
+        ~gif_block_buffer();
 
         // Inserts a byte into the current sub-block. If this causes
-        // the sub_block's size to reach the maximum allowed, it will
+        // the sub-block's size to reach the maximum allowed, it will
         // be written to the output file and a new sub-block will be
         // started.
-        sub_block_buffer& operator<<(uint8_t byte);
+        gif_block_buffer& operator<<(uint8_t byte);
 
         // Returns the number of bytes in the payload of the current
         // sub-block, not including the one-byte header.

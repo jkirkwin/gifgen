@@ -2,13 +2,13 @@
 
 #include <catch2/catch.hpp>
 #include <sstream>
-#include "sub_block_buffer.hpp"
+#include "gif_block_buffer.hpp"
 
 using namespace gif;
 
 TEST_CASE("Test manually write empty block") {
     std::stringstream ss;
-    sub_block_buffer buffer(ss);
+    gif_block_buffer buffer(ss);
     REQUIRE(ss.str().empty());
     REQUIRE(buffer.current_block_size() == 0);
 
@@ -20,7 +20,7 @@ TEST_CASE("Test manually write empty block") {
 
 TEST_CASE("Test manually write partial block") {
     std::stringstream ss;
-    sub_block_buffer buffer(ss);
+    gif_block_buffer buffer(ss);
     REQUIRE(ss.str().empty());
     REQUIRE(buffer.current_block_size() == 0);
 
@@ -37,7 +37,7 @@ TEST_CASE("Test manually write partial block") {
 
 TEST_CASE("Test buffer writes when filled") {
     std::stringstream ss;
-    sub_block_buffer buffer(ss);
+    gif_block_buffer buffer(ss);
 
     for (std::size_t i = 0; i < 255; ++i) {
         REQUIRE(ss.str().size() == 0);
