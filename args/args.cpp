@@ -5,29 +5,40 @@
 namespace args {
 
     void print_help() {
-        // TODO Update the help message
         std::cout 
-            << "gifgen reads in one or more PNG or JPEG images and embeds them in a GIF file." << std::endl
+            << "gifgen reads in one or more PNG or JPEG images and embeds them in a GIF file." 
+            << std::endl
             << std::endl
             << "To run the program, use:" << std::endl
-            << "\tgifgen <filetype option> <input file 1> <input file 2> [...] -o <result file name>" << std::endl
-            << "where <filetype option> is one of the following values:" << std::endl
-            << "\t-p, --png" << std::endl
-            << "\t\tIndicates the input files are PNG images" << std::endl
-            << "\t-j, --jpeg" << std::endl
-            << "\t\tIndicates the input files are JPEG images" << std::endl
+            << "\tgifgen [-p | -j] <input file 1> <input file 2> [...] -o <result file name> [-t <delay>]" 
             << std::endl
-            << "Other options:" << std::endl
-            << "\t-o, --output" << std::endl
-            << "\t\tThe name of the gif file to be created" << std::endl
-            << "\t-h, --help" << std::endl
+            << std::endl
+            << "Options:"
+            << std::endl
+            << "\t-p, --png" << std::endl
+            << "\t\tIndicates the input files are PNG images" 
+            << std::endl
+            << "\t-j, --jpeg" << std::endl
+            << "\t\tIndicates the input files are JPEG images" 
+            << std::endl
+            << "\t-o, --output" 
+            << std::endl
+            << "\t\tThe name of the gif file to be created" 
+            << std::endl
+            << "\t-t, --timing" 
+            << std::endl
+            << "\t\tThe timing delay to insert between frames, measured in hundreths of a second." << std::endl
+            << "\t\tThis must be a value between 0 and " << MAX_DELAY << ", inclusive. The default value is 0." 
+            << std::endl
+            << "\t-h, --help" 
+            << std::endl
             << "\t\tShow this help message" << std::endl
             << std::endl;
     }
 
     void print_usage() {
         std::cout 
-            << "Usage: gifgen <filetype option> <input files list>" << std::endl 
+            << "Usage: gifgen [--jpeg | --png] <input files list> -o <output_file>" << std::endl 
             << "Use gifgen --help for more information." << std::endl;
     }
 
@@ -40,6 +51,7 @@ namespace args {
     program_arguments parse_arguments(int argc, char **argv) {
         program_arguments args;
         args.file_type = UNSPECIFIED;
+        args.delay = 0;
 
         int ind = 0; // Unused but required for getopt_long
         int cur_opt; // The option currently being processed
@@ -50,13 +62,14 @@ namespace args {
             {"png",     no_argument,       0,  'p'},
             {"jpeg",    no_argument,       0,  'j'},
             {"output",  required_argument, 0,  'o'},
+            {"timing",  required_argument, 0,  't'},
             {"help",    no_argument,       0,  'h'},
             {0,         0,                 0,  0  }
         };
 
         // Defines the short versions of the options and whether they 
         // take any values. A colon indicates am argument.
-        const auto optstring = "pjo:h";
+        const auto optstring = "pjo:t:h";
 
         // Iterate over all specified options
         while ((cur_opt = getopt_long(argc, argv, optstring, opts, &ind)) != -1) {
@@ -75,6 +88,23 @@ namespace args {
                 case 'o':
                     args.output_file_name = optarg;
                     break;
+
+                case 't':
+                    try {
+                        // stoi may throw out_of_range or invalid_argument on failure
+                        int parsed_delay = std::stoi(optarg);
+                        if (parsed_delay < 0 || static_cast<std::size_t>(parsed_delay) > MAX_DELAY) {
+                            throw std::out_of_range("Delay out of allowable range");
+                        }
+
+                        args.delay = parsed_delay;
+
+                        break;
+                    }
+                    catch(...) {
+                        print_help();
+                        std::exit(EXIT_FAILURE);
+                    }
 
                 case 'h':
                     print_help();

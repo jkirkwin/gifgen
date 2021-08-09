@@ -8,6 +8,10 @@
 // simple structures.
 namespace args {
 
+    // The maximal delay allowed in a GIF Graphics
+    // Control Extension block.
+    constexpr std::size_t MAX_DELAY = 0xFFFF; 
+
     enum input_file_type : char {
         PNG = 'p',
         JPEG = 'j', 
@@ -20,6 +24,7 @@ namespace args {
         input_file_type file_type;
         std::vector<std::string> input_files;
         std::string output_file_name;
+        std::size_t delay;
     };
 
     // Parses the command-line arguments into a program_arguments
