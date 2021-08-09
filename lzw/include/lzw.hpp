@@ -61,9 +61,10 @@ namespace lzw {
 
                     // Insert the data to the right of any existing 
                     // buffer contents
+                    assert (num_bits + bits_in_buffer <= 32);
                     buffer |= (data << bits_in_buffer);
                     bits_in_buffer += num_bits;
-                } 
+                }
 
                 // Flush the current buffer contents to the 
                 // output stream. If the number of dirty bits
@@ -107,7 +108,7 @@ namespace lzw {
                     // remove them from the buffer.
                     uint8_t lsb(buffer & 0xFF);
                     out_stream << lsb;
-                    buffer = (buffer >> 8) & 0xFF;
+                    buffer = (buffer >> 8);
 
                     // Account for possible overflow when updating the 
                     // remaining bits in case we're in the process of flushing.
@@ -186,8 +187,8 @@ namespace lzw {
         // Encoded data will be written to the provided OutputStream 
         // one byte at a time.
         // 
-        // The number of bits required to encode output 
-        // data may increase as the size of the dictionary grows.
+        // The number of bits required to encode output data may 
+        // increase as the size of the dictionary grows.
         // The first code that is written will have size 
         // starting_bits + 1.
         lzw_encoder(size_type starting_bits, OutputStream& out) : 
