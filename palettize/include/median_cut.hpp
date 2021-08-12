@@ -16,51 +16,31 @@ namespace palettize {
             red, green, blue
         };
 
-        // Represents a histogram showing the number of occurrences of
-        // each color present in an image. For any index i, the pixel 
-        // colors[i] occurs exactly counts[i] times in the image.
-        struct color_histogram {
-            // TODO From my understanding of the reference implementation in the Springer book, 
-            //      it seems like we might be able to combine the histogram and the imageColors array 
-            //      and prevent an O(n) copy operation.
-            //      Implement it there way for now, and if it still seems like we could use the same
-            //      data for both, do so and benchmark it to see if it has a positive effect.
-            std::vector<std::size_t> counts;
-            std::vector<image::rgb_pixel_t> colors; 
-
-            std::size_t size() const {
-                assert (counts.size() == colors.size());
-                return counts.size();
-            }
-        };
-
-        // Packages a color in the RGB cube and a frequency count 
-        // of how many times that color appears in an image.
-        struct color_freq {
+        // A histogram entry which records the number of times a color
+        // ocurrs in an image.
+        struct histogram_node {
             image::rgb_pixel_t color;
             std::size_t count;
         };
 
+        // A histogram showing the number of occurrences of each color
+        // present in an image.
+        using color_histogram = std::vector<histogram_node>;
+
         // Represents a non-empty 3-dimensional region in the 0-255 RGB cube 
         // and the set of colors in that region that are used in an image.
-        //
-        // The region's color data is stored in a contiguous run of color_freq's // TODO Update this once the histogram has been updated
-        // in a shared vector. The region owns a contiguous portion of this shared
-        // data which represents a contiguous rectangular prism in RGB space.
+        // The region's color data is stored in a contiguous portion of the 
+        // shared color histogram.
         class color_region {
         public:
-
-            // The type of the shared list used to house contiguous regions
-            // efficiently.
-            using color_freq_list = std::vector<color_freq>;
 
             // Creates a new color_region which spans the range [start, end) in 
             // color_list. lim is the initial level of the region. This should be one
             // more than its parent region.
-            color_region(color_freq_list& color_list, 
-                        std::size_t start, // TODO is it possible to use iterators instead of indices?
-                        std::size_t end,
-                        uint level);
+            color_region(color_histogram& histogram, 
+                         std::size_t start,
+                         std::size_t end,
+                         uint level);
             
             ~color_region() = default;
 
@@ -96,10 +76,11 @@ namespace palettize {
             image::rgb_pixel_t average_color() const;
 
         private: 
-            // The shared image color-freq list and markers showing where this
-            // region lies in the list. This region owns this section of the list
-            // and may re-order it as necessary.
-            color_freq_list& image_color_freqs; 
+            // The shared list and markers showing where this region lies in
+            // the list. This region owns this section of the list and may
+            // re-order it as necessary. We use raw indices rather than 
+            // iterators due to some of the lookahead checks that are required.
+            color_histogram& histogram; 
             std::size_t start_index;
             std::size_t end_index;
 
@@ -131,7 +112,9 @@ namespace palettize {
     // implemented classically, with the exception that the initial
     // scalar quantization step is omitted to produce higher fidelity
     // results. The implementation follows the layout suggested by 
-    // Burger and Burge in Principals of Digital Image Processing.
+    // Burger and Burge in Principals of Digital Image Processing,
+    // but handles some missed edge cases in their treatment of it,
+    // and uses less space.
     color_table median_cut(const image::rgb_image_view_t& image_view);
 
 }

@@ -30,8 +30,7 @@ namespace palettize {
     // Generates a histogram of all the colors used in the image
     color_histogram 
     compute_color_histogram(const image::rgb_image_view_t& image_view) {
-        std::vector<std::size_t> counts;
-        std::vector<image::rgb_pixel_t> colors;
+        color_histogram histogram;
 
         // Copy the data from the image into a flat vector so we can sort 
         // it to efficiently generate the histogram counts.
@@ -40,42 +39,41 @@ namespace palettize {
 
         // Generate the histogram data by counting runs in the sorted 
         // list of pixels.
-        for (auto& pixel : pixels) {
-            if (colors.size() > 0 && colors.back() == pixel) {
+        for (const image::rgb_pixel_t& pixel : pixels) {
+            if (histogram.size() > 0 && histogram.back().color == pixel) {
                 // Existing run is continuing.
-                assert (counts.size() > 0);
-                ++counts.back();
+                ++histogram.back().count;
             }
             else {
                 // A new color has been found.
-                colors.push_back(pixel);
-                counts.push_back(1);
+                histogram.emplace_back(pixel, 1);
             }
-            assert (colors.size() == counts.size());
         }
 
-        return {counts, colors};
+        return histogram;
     }
 
-    // Returns a functor which compares two color_freq's based on 
-    // their color values in the given color dimension. The 
-    // resulting comparator can be used to order color_freq's in 
-    // the provided dimension, and does not use their counts.
-    auto get_single_dim_color_freq_comparator(color_dimension dim) {
-        return [dim](const color_freq& cf1, 
-                     const color_freq& cf2) {
-            return cf1.color[dim] < cf2.color[dim];
+    // Returns a functor which compares two histogram_node's based
+    // only on their color values in the given color dimension. The 
+    // resulting comparator can be used to order regions in the 
+    // histogram in the provided dimension. Nodes' frequency components
+    // are not used.
+    auto get_single_dim_histogram_comparator(color_dimension dim) {
+        return [dim](const histogram_node& a, const histogram_node& b) {
+            return a.color[dim] < b.color[dim];
         };
     }
 
-    color_region::color_region(color_freq_list& color_list, std::size_t start, 
-                               std::size_t end, uint level) : 
-            image_color_freqs(color_list), 
-            start_index(start), 
-            end_index(end), 
-            level(level) {
+    color_region::color_region(color_histogram& hist, 
+                               std::size_t start, 
+                               std::size_t end, 
+                               uint level) : 
+                histogram(hist), 
+                start_index(start), 
+                end_index(end), 
+                level(level) {
         assert (start < end);
-        assert (end <= color_list.size());
+        assert (end <= hist.size());
         compute_bounds();
     }
 
@@ -118,9 +116,9 @@ namespace palettize {
 
         // Sort the region along its largest dimension.
         color_dimension dim = largest_dim();
-        auto compare = get_single_dim_color_freq_comparator(dim);
+        auto compare = get_single_dim_histogram_comparator(dim);
 
-        auto start_it = image_color_freqs.begin() + start_index;
+        auto start_it = histogram.begin() + start_index;
         auto end_it = start_it + colors();
 
         std::sort(start_it, end_it, compare);
@@ -136,13 +134,13 @@ namespace palettize {
                 break;
             }
 
-            partition_pixels += image_color_freqs.at(mid_index).count;
+            partition_pixels += histogram.at(mid_index).count;
             ++mid_index;
         }
 
         // Split the region at the median and return the other half.
         ++level;
-        color_region other(image_color_freqs, mid_index, end_index, level);
+        color_region other(histogram, mid_index, end_index, level);
         
         end_index = mid_index;
         compute_bounds();
@@ -153,7 +151,7 @@ namespace palettize {
     void color_region::compute_bounds() {
         // Sanity check that the region is valid and non-empty.
         assert (start_index < end_index);
-        assert (end_index <= image_color_freqs.size());
+        assert (end_index <= histogram.size());
 
         r_min = 255;
         g_min = 255;
@@ -163,7 +161,7 @@ namespace palettize {
         b_max = 0;
         pixel_count = 0;
         for (auto i = start_index; i < end_index; ++i) {
-            auto &[color, count] = image_color_freqs.at(i);
+            auto &[color, count] = histogram.at(i);
             
             pixel_count += count;
             
@@ -184,7 +182,7 @@ namespace palettize {
     image::rgb_pixel_t color_region::average_color() const {
         std::size_t r_sum(0), g_sum(0), b_sum(0);
         for (auto i = start_index; i < end_index; ++i) {
-            auto &[color, count] = image_color_freqs.at(i);
+            auto &[color, count] = histogram.at(i);
             r_sum += color[0] * count;
             g_sum += color[1] * count;
             b_sum += color[2] * count;
@@ -253,27 +251,21 @@ namespace palettize {
     color_table median_cut(const image::rgb_image_view_t& image_view) {
         auto histogram = compute_color_histogram(image_view);
 
+        // TODO Could add a log message here indicating the number of colors that were found
+
         if (histogram.size() <= color_table::max_size()) {
             // There are few enough colors in the image already 
             // that we can fit them all in the palette.
-            color_table palette(std::move(histogram.colors));
+            color_table palette;
+            for (const histogram_node& node : histogram) {
+                palette.add_color(node.color);
+            }
             return palette;
         }
 
-        // Create the shared color list which will be partitioned into 
-        // regions.
-        // TODO It might be better to use the histogram directly here (and modify it to be a list of structs)
-        std::vector<color_freq> image_color_freqs;
-        image_color_freqs.reserve(histogram.size());
-        for (size_t i = 0; i < histogram.size(); ++i) {
-            color_freq node {histogram.colors.at(i), histogram.counts.at(i)};
-            image_color_freqs.push_back(node);
-        }
-        assert (image_color_freqs.size() == histogram.size());
-        
-        // To start, create a one-item list of regions containing one region which
-        // represents the entire color space.
-        color_region initial_region(image_color_freqs, 0, image_color_freqs.size(), 0);
+        // To start, create a one-item list of regions containing a single region
+        // representing the entire color space.
+        color_region initial_region(histogram, 0, histogram.size(), 0);
         std::vector<color_region> regions { initial_region };
         regions.reserve(color_table::max_size());
 

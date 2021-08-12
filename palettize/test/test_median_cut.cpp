@@ -15,8 +15,8 @@ using namespace internal;
 
 TEST_CASE("Test unit color region average color computation", "[median_cut][region][avg]") {
     image::rgb_pixel_t color(0x12, 0x98, 0x21);
-    color_freq node(color, 1);
-    color_region::color_freq_list list { node };
+    histogram_node node(color, 1);
+    color_histogram list { node };
 
     color_region region(list, 0, 1, 0);
 
@@ -30,11 +30,11 @@ TEST_CASE("Test color region average color computation", "[median_cut][region][a
     image::rgb_pixel_t c2(0, 0, 0);
     image::rgb_pixel_t c3(50, 40, 30);
     image::rgb_pixel_t c4(100, 1, 9);
-    color_region::color_freq_list list {
-        color_freq(c1, 6),
-        color_freq(c2, 1),
-        color_freq(c3, 2),
-        color_freq(c4, 3)
+    color_histogram list {
+        histogram_node(c1, 6),
+        histogram_node(c2, 1),
+        histogram_node(c3, 2),
+        histogram_node(c4, 3)
     };
     color_region region(list, 0, 4, 0);
 
@@ -64,9 +64,9 @@ TEST_CASE("Test split region with two colors", "[region][split][median_cut]") {
         count_2 = 10; 
     }
 
-    color_region::color_freq_list color_list { 
-        color_freq(color_1, count_1),
-        color_freq(color_2, count_2)
+    color_histogram color_list { 
+        histogram_node(color_1, count_1),
+        histogram_node(color_2, count_2)
     };
     
     color_region region_1(color_list, 0, 2, 0);
@@ -90,9 +90,9 @@ TEST_CASE("Test split region on green dimension", "[region][split][median_cut]")
     image::rgb_pixel_t color_1(99, 80, 74);
     image::rgb_pixel_t color_2(0, 180, 50);
 
-    color_region::color_freq_list color_list { 
-        color_freq(color_1, 1),
-        color_freq(color_2, 1)
+    color_histogram color_list { 
+        histogram_node(color_1, 1),
+        histogram_node(color_2, 1)
     };
 
     color_region region_1(color_list, 0, 2, 10);
@@ -115,9 +115,9 @@ TEST_CASE("Test split region on blue dimension", "[region][split][median_cut]") 
     image::rgb_pixel_t color_1(99, 255, 100);
     image::rgb_pixel_t color_2(0, 180, 200);
 
-    color_region::color_freq_list color_list { 
-        color_freq(color_1, 1),
-        color_freq(color_2, 1)
+    color_histogram color_list { 
+        histogram_node(color_1, 1),
+        histogram_node(color_2, 1)
     };
 
     color_region region_1(color_list, 0, 2, 10);
