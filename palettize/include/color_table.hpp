@@ -18,17 +18,6 @@ namespace palettize {
     class color_table {
     public:
 
-        // Creates a new color table using the provided colors in the same 
-        // order as they are in the vector. The provided vector may be moved
-        // from. colors' size should not exceed the maximum color table size.
-        color_table(std::vector<image::rgb_pixel_t>&& colors) : table(colors) {
-            assert (colors.size() <= max_size());
-        }
-
-        // Creates an empty color table.
-        color_table() : table() {
-        }
-
         // The type used to index into the table. Each index from 0
         // to size() - 1 corresponds to a pixel-color value.
         using index_type = std::uint8_t;

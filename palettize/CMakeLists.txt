@@ -5,7 +5,9 @@ include_directories(include)
 # Color table
 add_library(color_table color_table.cpp include/color_table.hpp)
 
-# TODO Add tests for color table
+add_executable(test_color_table test/test_color_table.cpp)
+target_link_libraries(test_color_table color_table)
+ADD_COVERAGE_TARGET(test_color_table)
 
 # Median cut
 add_library(median_cut median_cut.cpp include/median_cut.hpp)

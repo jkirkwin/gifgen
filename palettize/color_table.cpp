@@ -40,13 +40,12 @@ namespace palettize {
 
         return index;
     } 
-    // TODO test
 
     void color_table::add_color(const image::rgb_pixel_t& p) {
         assert (size() < max_size());
+        assert (!contains_color(p));
         table.push_back(p);
     }
-    // TODO test
 
     bool color_table::contains_color(const image::rgb_pixel_t& p) {  
         for (const auto& entry : table) {
@@ -64,22 +63,27 @@ namespace palettize {
     uint8_t color_table::min_bit_depth() const {
         assert  (size() <= max_size());
 
-        uint16_t size_value = size() - 1;
-        uint8_t bit_depth = 0;
-        while (size_value != 0) {
-            ++bit_depth;
-            size_value >>= 1u;
+        if (size() < 2) {
+            return size();
         }
+        else {
+            // Count the number of bits needed to represent size() - 1,
+            // which is the maximal index in the color table.
+            uint16_t size_value = size() - 1;
+            uint8_t bit_depth = 0;
+            while (size_value != 0) {
+                ++bit_depth;
+                size_value >>= 1u;
+            }
 
-        return bit_depth;
-    }// TODO Test this
-
+            return bit_depth;
+        }
+    }
 
     // Returns the number of entries in the color table.
     std::size_t color_table::size() const {
         return table.size();
     } 
-    // TODO test
 
     std::size_t color_table::max_size() {
         return 256;
