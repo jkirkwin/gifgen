@@ -19,9 +19,8 @@ namespace palettize {
         return distance;
     }
 
-    // TODO Consider just returning the index on its own.
-    std::pair<color_table::index_type, image::rgb_pixel_t> 
-    color_table::get_nearest_color(const image::rgb_pixel_t& p) const {
+    color_table::index_type
+    color_table::get_nearest_color_index(const image::rgb_pixel_t& p) const {
         assert (size() > 0);
 
         uint32_t min_distance = MAX_EUCLIDEAN_DISTANCE + 1;
@@ -39,7 +38,7 @@ namespace palettize {
             }              
         }
 
-        return std::make_pair(index, table[index]);
+        return index;
     } 
     // TODO test
 
@@ -49,7 +48,7 @@ namespace palettize {
     }
     // TODO test
 
-    bool color_table::contains_color(const image::rgb_pixel_t& p) {  // TODO remove or optimize once median cut is implemented.
+    bool color_table::contains_color(const image::rgb_pixel_t& p) {  
         for (const auto& entry : table) {
             if (entry == p) {
                 return true;
@@ -85,8 +84,4 @@ namespace palettize {
     std::size_t color_table::max_size() {
         return 256;
     }
-
-    // TODO I think the Median cut implementation will give us
-    //      an intelligent structure we can traverse nicely, so 
-    //      for now we will just use a hash map for now.
 }

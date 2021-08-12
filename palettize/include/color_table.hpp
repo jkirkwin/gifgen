@@ -18,19 +18,27 @@ namespace palettize {
     class color_table {
     public:
 
+        // Creates a new color table using the provided colors in the same 
+        // order as they are in the vector. The provided vector may be moved
+        // from. colors' size should not exceed the maximum color table size.
+        color_table(std::vector<image::rgb_pixel_t>&& colors) : table(colors) {
+            assert (colors.size() <= max_size());
+        }
+
+        // Creates an empty color table.
+        color_table() : table() {
+        }
+
         // The type used to index into the table. Each index from 0
         // to size() - 1 corresponds to a pixel-color value.
         using index_type = std::uint8_t;
 
         // Finds the nearest color in the color table to the provided
-        // pixel p. Distance is measured as the Euclidean distance 
-        // between pixels in three-dimensional RGB space.
+        // pixel p and returns its index. Distance is measured as the
+        // Euclidean distance between pixels in three-dimensional RGB space.
         //
-        // Returns the nearest color and the index in the table 
-        // corresponding to the color.
-        //
-        // Pre-condition: The table must not be empty.
-        std::pair<index_type, image::rgb_pixel_t> get_nearest_color(const image::rgb_pixel_t& p) const;
+        // Pre-condition: The color table must not be empty.
+        index_type get_nearest_color_index(const image::rgb_pixel_t& p) const;
  
         // Adds the color contained in p to the color table.
         //
@@ -40,13 +48,12 @@ namespace palettize {
         void add_color(const image::rgb_pixel_t& p);
 
         // Answers whether the table already contains the given
-        // pixel color at any index.
-        bool contains_color(const image::rgb_pixel_t& p); // TODO remove or optimize once median cut is implemented.
+        // pixel color at any index. This is mainly used for testing/
+        // assertions. It runs in O(size()) time.
+        bool contains_color(const image::rgb_pixel_t& p); 
 
-        // Gets a reference to the color at index i
+        // Gets a reference to the color at index i in O(1) time.
         const image::rgb_pixel_t& at(uint32_t i) const;
-
-        // TODO Add iterators so we can easily iterate over the color table to write it to the output file
 
         // Returns the number of bits needed to index into the table. 
         uint8_t min_bit_depth() const;
@@ -65,7 +72,7 @@ namespace palettize {
         //    = 195075
         static const uint32_t MAX_EUCLIDEAN_DISTANCE = 195075;
 
-        std::vector<image::rgb_pixel_t> table; // TODO Replace with whatever type of tree the median cut algorithm generate
+        std::vector<image::rgb_pixel_t> table;
     };
 
 }

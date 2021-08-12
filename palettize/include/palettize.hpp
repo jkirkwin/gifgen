@@ -15,10 +15,10 @@
 // like gradients.
 namespace palettize {
 
-    // TODO re-document this file once we have a median cut implementation.
-
     // Creates and returns a color table of up to 256 RGB pixel 
     // colors to represent the given image as closely as possible.
+    // The median cut algorithm is used to do this, with no up-front
+    // scalar quantization. 
     color_table create_color_table(const image::rgb_image_view_t& image_view);
 
     // Quantizes image using the provided color table to produce 
