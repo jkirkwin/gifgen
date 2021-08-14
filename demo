@@ -1,0 +1,15 @@
+# This shell script contains a sequence of commands
+# meant to provide a brief demonstration of the software
+# developed here for GIF generation from still images.
+# The UNIX display utility has issues with (a) displaying
+# large images and (b) adhering to timing and looping
+# parameters, so firefox is used instead.
+
+WORKING_DIR=$(dirname "$0")
+GIFGEN_COMMAND=${WORKING_DIR}/gifgen
+SAMPLE_IMAGES_DIR=${WORKING_DIR}/sample_images
+
+# Convert snake frames to animation to show off timing etc.
+echo "Converting frame sequence to animated GIF"
+find ${SAMPLE_IMAGES_DIR}/snake -type f | sort | xargs ${GIFGEN_COMMAND} --png --timing 30 -o snake.gif
+firefox snake.gif &
