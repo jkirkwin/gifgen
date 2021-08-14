@@ -3,6 +3,7 @@
 #include <optional>
 #include <algorithm>
 #include <ranges>
+#include <iostream>
 
 namespace palettize {
 
@@ -29,7 +30,7 @@ namespace palettize {
 
     // Generates a histogram of all the colors used in the image
     color_histogram 
-    compute_color_histogram(const image::rgb_image_view_t& image_view) {
+    compute_color_histogram(const image::rgb_image_view_t& image_view) { 
         color_histogram histogram;
 
         // Copy the data from the image into a flat vector so we can sort 
@@ -54,13 +55,18 @@ namespace palettize {
     }
 
     // Returns a functor which compares two histogram_node's based
-    // only on their color values in the given color dimension. The 
-    // resulting comparator can be used to order regions in the 
-    // histogram in the provided dimension. Nodes' frequency components
-    // are not used.
+    // on their color values in the given color dimension. The resulting
+    // comparator can be used to order regions in the histogram in the 
+    // provided dimension. Nodes' frequency components are not used.
+    // Ties are broken in RGB order.
     auto get_single_dim_histogram_comparator(color_dimension dim) {
         return [dim](const histogram_node& a, const histogram_node& b) {
-            return a.color[dim] < b.color[dim];
+            if (a.color[dim] != b.color[dim]) {
+                return a.color[dim] < b.color[dim];
+            }
+            else {
+                return rgb_pixel_comparator(a.color, b.color);
+            }
         };
     }
 
@@ -123,9 +129,10 @@ namespace palettize {
 
         std::sort(start_it, end_it, compare);
 
-        // Find the median value in the chosen dimension
-        std::size_t partition_pixels(0);
-        std::size_t mid_index(start_index);
+        // Find the median color value in the chosen dimension over the 
+        // pixels in the region.
+        std::size_t partition_pixels(histogram.at(start_index).count);
+        std::size_t mid_index(start_index + 1);
         while(partition_pixels < pixel_count / 2) {
             if (mid_index == end_index - 1) {
                 // In the case where all the "weight" in the region is at 
@@ -137,8 +144,12 @@ namespace palettize {
             partition_pixels += histogram.at(mid_index).count;
             ++mid_index;
         }
+        assert (mid_index > start_index);
+        assert (mid_index < end_index);
 
         // Split the region at the median and return the other half.
+        // The first partition contains [start_index, mid_index) and 
+        // the second contains [mid_index, start_index].
         ++level;
         color_region other(histogram, mid_index, end_index, level);
         
@@ -251,7 +262,7 @@ namespace palettize {
     color_table median_cut(const image::rgb_image_view_t& image_view) {
         auto histogram = compute_color_histogram(image_view);
 
-        // TODO Could add a log message here indicating the number of colors that were found
+        std::cout << "Creating color palette. Found " << histogram.size() << " unique colors" << std::endl;
 
         if (histogram.size() <= color_table::max_size()) {
             // There are few enough colors in the image already 

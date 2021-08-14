@@ -43,7 +43,6 @@ namespace palettize {
 
     void color_table::add_color(const image::rgb_pixel_t& p) {
         assert (size() < max_size());
-        assert (!contains_color(p));
         table.push_back(p);
     }
 
