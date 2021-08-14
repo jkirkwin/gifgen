@@ -2,10 +2,10 @@
 #include <getopt.h>
 #include <iostream>
 #include <cassert>
+#include <filesystem>
+#include <algorithm>
 
 namespace args {
-
-    // TODO Add -d option
 
     void print_help() {
         std::cout 
@@ -37,6 +37,12 @@ namespace args {
             << "\t\tThe timing delay to insert between frames, measured in milliseconds." << std::endl
             << "\t\tThis must be a value between 0 and " << MAX_DELAY_MS << ", inclusive, and must be a multiple of 10." << std::endl
             << "\t\tThe default value is 0." 
+            << std::endl
+            << std::endl
+            <<"\t-d, --directory" << std::endl
+            << "\t\tIgnore positional input file arguments and use all files in the top level of the" << std::endl
+            << "\t\tspecified directory as input frames. The full contents of the directory will be" << std::endl
+            << "\t\tprocessed, excluding sub-directories, in alphabetical order."
             << std::endl
             << std::endl
             << "\t-h, --help" 
@@ -74,6 +80,36 @@ namespace args {
         }
     }
 
+    // Enumerate the files in the top level of the given directory
+    std::vector<std::string> enumerate_directory_files(const std::string& dir) {
+        assert (std::filesystem::exists(dir));
+        assert  (std::filesystem::is_directory(dir));
+
+        std::vector<std::string> files;
+        for(auto const& dir_entry : std::filesystem::directory_iterator{dir}) {
+            if (dir_entry.is_regular_file()) {
+                files.push_back(dir_entry.path());
+            }
+        }
+
+        return files;     
+    }
+
+    // Add the contents of the directory to the arguments in alphabetical order, if possible.
+    void add_dir_files_to_args(program_arguments& args, const std::string& dir) {
+        assert (std::filesystem::exists(dir)); 
+        assert (std::filesystem::is_directory(dir));
+
+        auto files = enumerate_directory_files(dir);
+        if (files.empty()) {
+            error("No files were found in directory " + dir);
+        }
+        else {
+            std::sort(files.begin(), files.end());
+            args.input_files = files;
+        }
+    }
+
     program_arguments parse_arguments(int argc, char **argv) {
         program_arguments args;
         args.file_type = UNSPECIFIED;
@@ -85,17 +121,18 @@ namespace args {
         // Defines all the long options that we support and
         // their mappings to a char identifier.
         static struct option opts[] = {
-            {"png",     no_argument,       0,  'p'},
-            {"jpeg",    no_argument,       0,  'j'},
-            {"output",  required_argument, 0,  'o'},
-            {"timing",  required_argument, 0,  't'},
-            {"help",    no_argument,       0,  'h'},
-            {0,         0,                 0,  0  }
+            {"png",         no_argument,       0,  'p'},
+            {"jpeg",        no_argument,       0,  'j'},
+            {"output",      required_argument, 0,  'o'},
+            {"timing",      required_argument, 0,  't'},
+            {"directory",   required_argument, 0,  'd'},
+            {"help",        no_argument,       0,  'h'},
+            {0,             0,                 0,  0  }
         };
 
         // Defines the short versions of the options and whether they 
-        // take any values. A colon indicates am argument.
-        const auto optstring = "pjo:t:h";
+        // take any values. A colon indicates an argument.
+        const auto optstring = "pjo:t:d:h";
 
         // Iterate over all specified options and add them to args.
         while ((cur_opt = getopt_long(argc, argv, optstring, opts, &ind)) != -1) {
@@ -142,6 +179,31 @@ namespace args {
                         error("Unable to convert timing delay to integer value");
                     }
 
+                case 'd':
+                    {
+                        std::string dir_name = optarg;
+
+                        if (!args.input_files.empty()) {
+                            error("Cannot source input files from multiple directories");
+                        }
+                        else if (!std::filesystem::exists(dir_name) ||
+                                !std::filesystem::is_directory(dir_name)) {
+                            error ("No such directory: " + dir_name);
+                        }
+                        else {
+                            try {
+                                add_dir_files_to_args(args, dir_name);
+                            }
+                            catch(...) {
+                                // There are numerous things that might go wrong when
+                                // accessing the directory and its files. Leave it to 
+                                // the user to diagnose the issue in this case.
+                                error("Unable to parse directory " + dir_name);
+                            }
+                        }
+                    }
+                    break;
+
                 case 'h':
                     // If we see the help flag, stop the application immediately after printing
                     // out the help message.
@@ -162,11 +224,19 @@ namespace args {
             }
         }
 
-        // Add all the non-option arguments to the result. These are the input
-        // files to convert to GIF format.
+        // If an input directory wasn't specified, add all the
+        // non-option arguments to the result as input files.
+        bool dir_specified = !args.input_files.empty();
         while (optind < argc) {
             std::string arg = argv[optind];
-            args.input_files.push_back(arg);
+
+            if (dir_specified) {
+                std::cout << "Warning: Unused argument " << arg << ". The specified directory is used for input data." << std::endl;
+            }
+            else {
+                args.input_files.push_back(arg);
+            }
+            
             ++optind;
         }
 
