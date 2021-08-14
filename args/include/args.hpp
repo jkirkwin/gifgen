@@ -9,8 +9,13 @@
 namespace args {
 
     // The maximal delay allowed in a GIF Graphics
-    // Control Extension block.
-    constexpr std::size_t MAX_DELAY = 0xFFFF; 
+    // Control Extension block, measured in hundredths
+    // of a second.
+    constexpr std::size_t MAX_DELAY_VALUE = 0xFFFF; 
+
+    // The maximal delay allowed in a GIF Graphics
+    // Control Extension block, measured in milliseconds.
+    constexpr std::size_t MAX_DELAY_MS = MAX_DELAY_VALUE * 10;
 
     enum input_file_type : char {
         PNG = 'p',

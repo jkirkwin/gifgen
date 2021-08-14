@@ -1,8 +1,11 @@
 #include "args.hpp"
 #include <getopt.h>
 #include <iostream>
+#include <cassert>
 
 namespace args {
+
+    // TODO Add -d option
 
     void print_help() {
         std::cout 
@@ -27,8 +30,9 @@ namespace args {
             << std::endl
             << "\t-t, --timing" 
             << std::endl
-            << "\t\tThe timing delay to insert between frames, measured in hundreths of a second." << std::endl
-            << "\t\tThis must be a value between 0 and " << MAX_DELAY << ", inclusive. The default value is 0." 
+            << "\t\tThe timing delay to insert between frames, measured in milliseconds." << std::endl
+            << "\t\tThis must be a value between 0 and " << MAX_DELAY_MS << ", inclusive, and must be a multiple of 10." << std::endl
+            << "\t\tThe default value is 0." 
             << std::endl
             << "\t-h, --help" 
             << std::endl
@@ -38,7 +42,7 @@ namespace args {
 
     void print_usage() {
         std::cout 
-            << "Usage: gifgen [--jpeg | --png] <input files list> -o <output_file>" << std::endl 
+            << "Usage: gifgen [--jpeg | --png] <input files list> -o <output_file> [-t <timing delay>]" << std::endl 
             << "Use gifgen --help for more information." << std::endl;
     }
 
@@ -92,12 +96,17 @@ namespace args {
                 case 't':
                     try {
                         // stoi may throw out_of_range or invalid_argument on failure
+                        // TODO This should be measured in milliseconds and converted to hundedths of a second
                         int parsed_delay = std::stoi(optarg);
-                        if (parsed_delay < 0 || static_cast<std::size_t>(parsed_delay) > MAX_DELAY) {
+                        if (parsed_delay < 0 || static_cast<std::size_t>(parsed_delay) > MAX_DELAY_MS) {
                             throw std::out_of_range("Delay out of allowable range");
                         }
+                        else if (parsed_delay % 10 != 0) {
+                            throw std::out_of_range("Delay must be a multiple of 10");
+                        }
 
-                        args.delay = parsed_delay;
+                        args.delay = parsed_delay / 10;
+                        assert (args.delay <= MAX_DELAY_VALUE);
 
                         break;
                     }
