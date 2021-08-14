@@ -63,7 +63,25 @@ USAGE.
 
         cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=RELEASE
         cmake --build build --target gifgen
-    
+
+INSTALLATION.
+
+    The install target can be used to build and install the software. The gifgen
+    binary and a demo script with some sample image files are placed in the
+    directory ${CMAKE_INSTALL_PREFIX}/bin. To install the software in a custom
+    location, specify a custom value for CMAKE_INSTALL_PREFIX. For example, to 
+    install a release version of the software in $TMP_DIR and run the demo script,
+    the following commands might be used:
+
+        cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=$TMP_DIR
+        cmake --build build --target install
+        $TMP_DIR/bin/demo 
+
+    As noted again below, if the software is being installed, the user should 
+    specify the RELEASE configuration unless they have a good reason not to. The 
+    software can be installed using a different configuration like DEBUG, but it 
+    will be far less performant.
+
 PERFORMANCE.
 
     Imporant notes on DEBUG vs. RELEASE configuration performance for the marker
