@@ -11,5 +11,5 @@ SAMPLE_IMAGES_DIR=${WORKING_DIR}/sample_images
 
 # Convert snake frames to animation to show off timing etc.
 echo "Converting frame sequence to animated GIF"
-find ${SAMPLE_IMAGES_DIR}/snake -type f | sort | xargs ${GIFGEN_COMMAND} --png --timing 30 -o snake.gif
+${GIFGEN_COMMAND} --png --timing 500 --directory ${SAMPLE_IMAGES_DIR}/snake --output snake.gif
 firefox snake.gif &
