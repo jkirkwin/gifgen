@@ -262,7 +262,7 @@ namespace palettize {
     color_table median_cut(const image::rgb_image_view_t& image_view) {
         auto histogram = compute_color_histogram(image_view);
 
-        std::cout << "Creating color palette. Found " << histogram.size() << " unique colors" << std::endl;
+        std::cout << "\tCreating color palette. Found " << histogram.size() << " unique colors" << std::endl;
 
         if (histogram.size() <= color_table::max_size()) {
             // There are few enough colors in the image already 

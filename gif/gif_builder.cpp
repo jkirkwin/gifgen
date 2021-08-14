@@ -2,6 +2,7 @@
 #include "gif_data_format.hpp"
 #include "../lzw/include/lzw.hpp" // TODO Fix this
 #include <cassert>
+#include <iostream>
 
 namespace gif {
 
@@ -151,6 +152,8 @@ namespace gif {
     // resulting codes into sub-blocks, and writes those blocks to the output file.
     void gif_builder::write_image_data(const image::rgb_image_view_t& image_view,
                                        const palettize::color_table& local_color_table) {
+        std::cout << "\tLZW-encoding image data" << std::endl;
+
         // The first byte of the image block tells the decoder how many bits
         // to use for its LZW dictionary.
         out_file << LZW_CODE_SIZE;

@@ -31,7 +31,8 @@ int main(int argc, char **argv) {
     auto args = args::parse_arguments(argc, argv);
     assert (!args.input_files.empty());
 
-    // Read in the first image to get the dimensions. TODO replace this with proper validation as described below.
+    // Read in the first image to get the dimensions. 
+    // TODO replace this with proper validation as described below.
     auto first_img = read_image(args.input_files.at(0), args.file_type);
     auto width = first_img.width();
     auto height = first_img.height();
@@ -47,10 +48,16 @@ int main(int argc, char **argv) {
         auto img = read_image(filename, args.file_type);
         auto image_view = boost::gil::view(img);
         gif_stream.add_frame(image_view);
+
+        std::cout << std::endl;
     }
     
     gif_stream.complete_stream();
     
+    std::cout << "GIF file " << args.output_file_name 
+              << " created with " << args.input_files.size() << " frame(s)" 
+              << std::endl;
+
     // TODO Add logic to check the validity of the given files
     //    Check that the input files exist, are of the appropriate type (jpeg/png),
     //    and have the same dimensions
