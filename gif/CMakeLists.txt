@@ -1,7 +1,5 @@
 project(gif LANGUAGES CXX)
 
-# TODO Cannot find the palettize header (or assumeably lzw either)
-
 include_directories(include)
 
 # Targets for the sub-block buffer library
@@ -15,5 +13,3 @@ ADD_COVERAGE_TARGET(${BUFFER_TEST})
 # Targets for the GIF builder library
 add_library(gif_builder gif_builder.cpp include/gif_builder.hpp)
 target_link_libraries(gif_builder palettize ${BUFFER_LIBRARY})
-
-# TODO Unit tests for the GIF builder?

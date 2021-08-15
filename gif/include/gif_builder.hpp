@@ -4,7 +4,7 @@
 #include <ostream>
 #include "image_utils.hpp"
 #include "gif_block_buffer.hpp"
-#include "../palettize/include/palettize.hpp" // TODO Fix this. This is the only way I've been able to make the include work, but it's unacceptable.
+#include "palettize.hpp"
 
 namespace gif {
 

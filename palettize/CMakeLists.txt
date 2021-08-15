@@ -20,3 +20,4 @@ ADD_COVERAGE_TARGET(test_median_cut)
 # Main palettization library for client use
 add_library(palettize palettize.cpp include/palettize.hpp)
 target_link_libraries(palettize median_cut)
+target_include_directories(palettize PUBLIC include)

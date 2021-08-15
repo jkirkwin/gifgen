@@ -1,6 +1,6 @@
 #include "gif_builder.hpp"
 #include "gif_data_format.hpp"
-#include "../lzw/include/lzw.hpp" // TODO Fix this
+#include "lzw.hpp"
 #include <cassert>
 #include <iostream>
 

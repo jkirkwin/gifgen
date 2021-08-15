@@ -19,6 +19,11 @@ find_package(Boost REQUIRED)
 find_package(Catch2 REQUIRED)
 include_directories(common)
 
+# We add this here because LZW is a header only library, and this is 
+# the easiest way to allow other libraries to depend on it without
+# nasty relative paths.
+include_directories(lzw/include)
+
 # Coverage option and shared coverage setup logic
 option(ENABLE_COVERAGE "Enable code coverage with Lcov" false)
 
