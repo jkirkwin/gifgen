@@ -15,11 +15,6 @@
 // codebase to use this functionality *and* be compiled with C++20.
 namespace image {
 
-    // Represents an image file type supported for IO, either JPEG or PNG.
-    enum class file_type {
-        JPEG, PNG
-    };
-
     // Answers whether filename is a file of the given type.
     // Returns false if the file cannot be accessed or does 
     // not exist. 

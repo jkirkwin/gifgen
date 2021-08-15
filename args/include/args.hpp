@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include "image_utils.hpp"
 
 // Enables the parsing of command-line arguments into
 // simple structures.
@@ -17,16 +18,10 @@ namespace args {
     // Control Extension block, measured in milliseconds.
     constexpr std::size_t MAX_DELAY_MS = MAX_DELAY_VALUE * 10;
 
-    enum input_file_type : char {
-        PNG = 'p',
-        JPEG = 'j', 
-        UNSPECIFIED = 0
-    };
-
     // Represents the parsed command-line arguments required
     // to run the program
     struct program_arguments {
-        input_file_type file_type;
+        image::file_type file_type;
         std::vector<std::string> input_files;
         std::string output_file_name;
         std::size_t delay;

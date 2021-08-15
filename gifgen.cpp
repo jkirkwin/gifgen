@@ -14,31 +14,6 @@
 #include "image_utils.hpp"
 #include "gif_builder.hpp"
 
-// TODO Use a common enum in image_utils
-image::file_type get_file_type(const args::program_arguments& args) {
-    if (args.file_type == args::input_file_type::JPEG) {
-        return image::file_type::JPEG;
-    }
-    else {
-        assert (args.file_type == args::input_file_type::PNG);
-        return image::file_type::PNG;
-    }
-}
-
-// Read in a JPEG or PNG image and return its GIL representation.
-image::rgb_image_t read_image (const std::string& filename, args::input_file_type file_type) { // TODO remove this
-    image::rgb_image_t img;
-    if (file_type == args::input_file_type::PNG) {
-        image::read_png_image(filename, img);
-    }
-    else {
-        assert (file_type == args::input_file_type::JPEG);
-        image::read_jpeg_image(filename, img);
-    }
-
-    return img;
-}
-
 struct image_dims {
     std::size_t width;
     std::size_t height;
@@ -115,10 +90,6 @@ bool check_images_are_compatible(const std::vector<std::string>& filenames, imag
 int main(int argc, char **argv) {
     auto args = args::parse_arguments(argc, argv);
 
-    // Convert from the arguments file type to the one used for
-    // Boost::GIL computations.
-    image::file_type file_type = get_file_type(args);// TODO remove this
-
     // In the interest of failing fast, we check that we are able
     // to read in each input frame and that they all match in size
     // before doing any real processing. This is done at the same time
@@ -127,7 +98,7 @@ int main(int argc, char **argv) {
     // failing on file n + 1 due to user error.
     assert (!args.input_files.empty());
     image_dims dims {0, 0};
-    if (!check_images_are_compatible(args.input_files, file_type, dims)) {
+    if (!check_images_are_compatible(args.input_files, args.file_type, dims)) {
         return 1;
     }
 
@@ -136,10 +107,11 @@ int main(int argc, char **argv) {
     gif::gif_builder gif_stream(output_file, dims.width, dims.height, args.delay);
 
     // Add each frame to the GIF
+    image::rgb_image_t img;
     for (const auto& filename : args.input_files) {
         std::cout << "Adding frame '" << filename << "' to " << args.output_file_name << std::endl;
-
-        auto img = read_image(filename, args.file_type);
+        
+        image::read_image(filename, img, args.file_type);
         auto image_view = boost::gil::view(img);
         gif_stream.add_frame(image_view);
 

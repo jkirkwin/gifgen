@@ -66,17 +66,35 @@ namespace args {
         std::exit(EXIT_FAILURE);
     }
 
-    // Checks the constructed arguments to verify that they are well 
-    // formed. If an error is detected, the program is terminated.
-    void validate_parsed_args(const program_arguments& args) {
-        if (args.file_type == UNSPECIFIED) {
-            error("No file type flag was specified");
+    // Parsing logic for file type argument 
+    void set_file_type(program_arguments& args, char flag) {
+        assert (flag == 'j' || flag == 'p');
+
+        args.file_type = 
+            flag == 'j' 
+            ? image::file_type::JPEG 
+            : image::file_type::PNG; 
+    }
+
+    // Parsing logic for timing delay
+    void set_timing_delay(program_arguments& args, const std::string& delay_string) {
+        try {
+            // std::stoi may throw out_of_range or invalid_argument exceptions 
+            // on failure.
+            int parsed_delay = std::stoi(delay_string);
+            if (parsed_delay < 0 || static_cast<std::size_t>(parsed_delay) > MAX_DELAY_MS) {
+                error("Timing delay out of allowable range");
+            }
+            else if (parsed_delay % 10 != 0) {
+                error("Timing delay must be a multiple of 10");
+            }
+            else {
+                args.delay = parsed_delay / 10;
+                assert (args.delay <= MAX_DELAY_VALUE);
+            }
         }
-        else if (args.input_files.empty()) {
-            error("No input files were specified");
-        }
-        else if (args.output_file_name == "") {
-            error("No output file was specified");
+        catch(std::exception& e) {
+            error("Unable to convert timing delay to integer value");
         }
     }
 
@@ -110,9 +128,31 @@ namespace args {
         }
     }
 
+    // Parsing logic for input directory option
+    void set_input_directory(program_arguments& args, const std::string& dir_name) {
+        assert (args.input_files.empty());
+        
+        if (!std::filesystem::exists(dir_name) ||
+                !std::filesystem::is_directory(dir_name)) {
+            error ("No such directory: " + dir_name);
+        }
+        else {
+            try {
+                add_dir_files_to_args(args, dir_name);
+            }
+            catch(...) {
+                // There are numerous things that might go wrong when
+                // accessing the directory and its files. Leave it to 
+                // the user to diagnose the issue in this case.
+                error("Unable to parse directory " + dir_name);
+            }
+        }
+    }
+
     program_arguments parse_arguments(int argc, char **argv) {
         program_arguments args;
-        args.file_type = UNSPECIFIED;
+        bool found_file_type = false;
+        bool found_delay = false;
         args.delay = 0;
 
         int ind = 0; // Unused but required for getopt_long
@@ -139,11 +179,12 @@ namespace args {
             switch (cur_opt) {
                 case 'p':
                 case 'j':
-                    if (args.file_type != UNSPECIFIED) {
+                    if (found_file_type) {
                         error("Duplicate file type flags");
                     }
                     else {
-                        args.file_type = static_cast<input_file_type>(cur_opt);
+                        set_file_type(args, cur_opt);
+                        found_file_type = true;
                     }
 
                     break;
@@ -155,53 +196,28 @@ namespace args {
                     else {
                         args.output_file_name = optarg;
                     }
+
                     break;
 
                 case 't':
-                    try {
-                        // std::stoi may throw out_of_range or invalid_argument exceptions 
-                        // on failure.
-                        int parsed_delay = std::stoi(optarg);
-                        if (parsed_delay < 0 || static_cast<std::size_t>(parsed_delay) > MAX_DELAY_MS) {
-                            error("Timing delay out of allowable range");
-                        }
-                        else if (parsed_delay % 10 != 0) {
-                            error("Timing delay must be a multiple of 10");
-                        }
-                        else {
-                            args.delay = parsed_delay / 10;
-                            assert (args.delay <= MAX_DELAY_VALUE);
-                        }
+                    if (found_delay) {
+                        error("Duplicate timing delay specified");
+                    }
+                    else {
+                        set_timing_delay(args, optarg);
+                        found_delay = true;
+                    }
 
-                        break;
-                    }
-                    catch(std::exception& e) {
-                        error("Unable to convert timing delay to integer value");
-                    }
+                    break;
 
                 case 'd':
-                    {
-                        std::string dir_name = optarg;
-
-                        if (!args.input_files.empty()) {
-                            error("Cannot source input files from multiple directories");
-                        }
-                        else if (!std::filesystem::exists(dir_name) ||
-                                !std::filesystem::is_directory(dir_name)) {
-                            error ("No such directory: " + dir_name);
-                        }
-                        else {
-                            try {
-                                add_dir_files_to_args(args, dir_name);
-                            }
-                            catch(...) {
-                                // There are numerous things that might go wrong when
-                                // accessing the directory and its files. Leave it to 
-                                // the user to diagnose the issue in this case.
-                                error("Unable to parse directory " + dir_name);
-                            }
-                        }
+                    if (!args.input_files.empty()) {
+                        error("Cannot source input files from multiple directories");
                     }
+                    else {
+                        set_input_directory(args, optarg);
+                    }
+
                     break;
 
                 case 'h':
@@ -224,14 +240,24 @@ namespace args {
             }
         }
 
+        // Check for missing values
+        if (!found_file_type) {
+            error("No file type flag was specified");
+        }
+        else if (args.output_file_name == "") {
+            error("No output file was specified");
+        }
+
         // If an input directory wasn't specified, add all the
         // non-option arguments to the result as input files.
+        // Afterwards, ensure we've got at least one usable input 
+        // file.
         bool dir_specified = !args.input_files.empty();
         while (optind < argc) {
             std::string arg = argv[optind];
 
             if (dir_specified) {
-                std::cout << "Warning: Unused argument " << arg << ". The specified directory is used for input data." << std::endl;
+                std::cout << "Warning: Unused argument " << arg << ". The specified directory is used for input data instead." << std::endl;
             }
             else {
                 args.input_files.push_back(arg);
@@ -240,7 +266,9 @@ namespace args {
             ++optind;
         }
 
-        validate_parsed_args(args);
+        if (args.input_files.empty()) {
+            error("No input files were specified");
+        }
 
         return args;
     }

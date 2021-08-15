@@ -10,6 +10,13 @@ namespace image {
     using rgb_pixel_t = boost::gil::rgb8_pixel_t;
     using rgb_image_t = boost::gil::rgb8_image_t;
     using rgb_image_view_t = boost::gil::rgb8_view_t;
+
+    // Enumerates the possible image types that could be used
+    // to construct a GIF.
+    enum class file_type {
+        JPEG,
+        PNG
+    };
 }
 
 #endif
