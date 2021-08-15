@@ -1,6 +1,6 @@
 // A helper program to read in a GIF file and print out
-// the observed parameters. For use debugging the main
-// gifgen application.
+// the observed parameters. For use debugging outputs of 
+// the gifgen application.
 
 #include <iostream>
 #include <string>

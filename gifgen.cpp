@@ -25,11 +25,13 @@ struct image_dims {
 //  3. The specific encoding can be read using a 24-bit
 //     color space (8 bits per channel)
 //
-// On success, the dimes parameter is updated to hold the dimensions of the
+// On success, the dims parameter is updated to hold the dimensions of the
 // input frames.
 //
 // Error information will be printed before returning false.
-bool check_images_are_compatible(const std::vector<std::string>& filenames, image::file_type type, image_dims& dims) {
+bool check_images_are_compatible(const std::vector<std::string>& filenames, 
+                                 image::file_type type, 
+                                 image_dims& dims) {
     assert (!filenames.empty());
     
     dims.width = 0;
@@ -90,12 +92,10 @@ bool check_images_are_compatible(const std::vector<std::string>& filenames, imag
 int main(int argc, char **argv) {
     auto args = args::parse_arguments(argc, argv);
 
-    // In the interest of failing fast, we check that we are able
-    // to read in each input frame and that they all match in size
-    // before doing any real processing. This is done at the same time
-    // as determining the necessary dimensions of the ouput file, and
-    // prevents us from spending time encoding the first n frames before
-    // failing on file n + 1 due to user error.
+    // In the interest of detecting user errors as quickly as possible, 
+    // we check that we are able to read in each input frame and that 
+    // they all match in size before doing any real processing. 
+    // We also determine the dimensions at the same time. 
     assert (!args.input_files.empty());
     image_dims dims {0, 0};
     if (!check_images_are_compatible(args.input_files, args.file_type, dims)) {

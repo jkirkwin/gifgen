@@ -4,8 +4,9 @@ include_directories(include)
 
 # Targets for the sub-block buffer library
 set(BUFFER_LIBRARY gif_block_buffer)
-set(BUFFER_TEST test_${BUFFER_LIBRARY})
 add_library(${BUFFER_LIBRARY} ${BUFFER_LIBRARY}.cpp include/${BUFFER_LIBRARY}.hpp)
+
+set(BUFFER_TEST test_${BUFFER_LIBRARY})
 add_executable(${BUFFER_TEST} test/${BUFFER_TEST}.cpp)
 target_link_libraries(${BUFFER_TEST} Catch2::Catch2 ${BUFFER_LIBRARY})
 ADD_COVERAGE_TARGET(${BUFFER_TEST})

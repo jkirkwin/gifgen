@@ -5,6 +5,7 @@ project(image_io LANGUAGES CXX)
 # this library.
 set(CMAKE_CXX_STANDARD 17) 
 
+# The IO extension depends on libjpeg and libpng
 find_package(JPEG REQUIRED)
 find_package(PNG REQUIRED)
 

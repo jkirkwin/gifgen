@@ -2,33 +2,45 @@ BACKGROUND.
     This software makes up the project deliverable for SENG475: Advanced 
     Programming Techniques for Robust, Efficient Computing at UVic.
 
-    The chosen project is an image-sequence -> animated GIF converter. 
-    The converter takes as input a sequence of PNG or JPEG images and
-    optional frame-rate information and generates as output an animated
-    GIF containing palettized versions of each of the input frames.
+    The chosen project is a command-line application which converts
+    sequences of still images into animated GIFs. The converter takes
+    as input a sequence of PNG or JPEG images and optional frame-rate
+    information and generates as output an animated GIF containing 
+    palettized versions of each of the input frames.
 
     GIF supports only an 8-bit color space, so images that use more than 
     256 unique colors must be quantized in some manner to decrease their 
-    color space to the appropriate size. This is done using a slightly 
-    modified version of the classical Median Cut algorithm as presented
-    by Burger and Burge in Princeipals of Digital Image Processing:
-    Core Algorithms. The process of generating a palette of 256 or fewer
-    colors for an image and quantizing it to use only those colors is 
-    referred to hereafter and in the code as "palettization".
+    color variety. This is done using a slightly modified version of the
+    classical Median Cut algorithm, as presented by Burger and Burge in 
+    Principals of Digital Image Processing: Core Algorithms. The process
+    of generating a palette of 256 or fewer colors for an image and 
+    quantizing the image pixels to use only those colors is referred to 
+    hereafter and in the code as "palettization".
 
     Once a palette has been generated, each image is re-encoded as a sequence
-    of indices into the color palette, and is then encoded using LZW compression.
-    The LZW algorithm prescribed by the GIF specification is slightly modified
-    to include clear and end-of-stream markers, and includes variable size codes
-    to save space. 
+    of indices into the list of colors which form that color palette. Then, 
+    the sequence of indices is encoded using LZW compression. The LZW algorithm
+    prescribed by the GIF specification is slightly modified from the orgiginal 
+    to include a clear code, and end-of-stream marker, and variable size code
+    words. 
 
-    Each frame is palettized, encoded using LZW, and inserted into a formatted
+    Each input frame is palettized, encoded using LZW, and inserted into a formatted
     GIF-compliant data stream. Other information can also be embedded in this 
     data stream, including animation directives. The software supports a custom
     timing delay value; this value is measured in hundreths of a second and will
-    cause a GIF-compliant image viewer to pause on each frame for that period of 
-    time. This effectively allows the user to specify a frame-rate for multi-frame
-    GIF animations.
+    cause a GIF-compliant image viewer to pause on each frame for the specified period
+    of time before loading the next one. This effectively allows the user to specify 
+    a frame-rate for multi-frame GIF animations.
+
+DISPLAY SOFTWARE.
+
+    Different image viewing programs can display GIF files, but they do not all
+    behave the same way. Notably, the Unix display tool and ffplay (from the ffmpeg
+    toolsuite) do not conform strictly to the GIF89a standard's specifications on
+    animation and do not properly support the ubiquitous NETSCAPE2.0 control extension
+    which specifies looping behaviour. As such, it is recommended that these tools 
+    should not be used to view the resulting GIFs. An up-to-date web browser is a 
+    safer choice. 
 
 DEPENDENCIES.
     To build and run this software, the following libraries are required:
@@ -68,10 +80,10 @@ INSTALLATION.
 
     The install target can be used to build and install the software. The gifgen
     binary and a demo script with some sample image files are placed in the
-    directory ${CMAKE_INSTALL_PREFIX}/bin. To install the software in a custom
-    location, specify a custom value for CMAKE_INSTALL_PREFIX. For example, to 
-    install a release version of the software in $TMP_DIR and run the demo script,
-    the following commands might be used:
+    directory ${CMAKE_INSTALL_PREFIX}/bin during install. To install the software 
+    in a custom location, specify a custom value for CMAKE_INSTALL_PREFIX. For 
+    example, to install a release version of the software in $TMP_DIR and run the 
+    demo script, the following commands might be used:
 
         cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=$TMP_DIR
         cmake --build build --target install

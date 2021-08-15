@@ -212,7 +212,6 @@ namespace gif {
         }
     }
 
-
     gif_builder& gif_builder::add_frame(const image::rgb_image_view_t& image_view) {
         // For each frame, we need to encode:
         // 0. Graphics Control Extension
@@ -235,5 +234,4 @@ namespace gif {
         stream_complete = true;
         write_gif_trailer();
     }
-
 }

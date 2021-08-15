@@ -11,8 +11,9 @@
 // the Boost::GIL IO extension from the rest of the build. This 
 // is necessary because this extension (a) depends on other 
 // libraries that are not otherwise needed by the project and (b)
-// is not compatible with C++20, so this allows the rest of the 
-// codebase to use this functionality *and* be compiled with C++20.
+// is not compatible with C++20. This allows the rest of the 
+// codebase to use this functionality and still be compiled 
+// with C++20.
 namespace image {
 
     // Answers whether filename is a file of the given type.

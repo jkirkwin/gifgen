@@ -1,9 +1,9 @@
 #include "args.hpp"
-#include <getopt.h>
-#include <iostream>
+#include <algorithm>
 #include <cassert>
 #include <filesystem>
-#include <algorithm>
+#include <getopt.h>
+#include <iostream>
 
 namespace args {
 
@@ -35,7 +35,8 @@ namespace args {
             << "\t-t, --timing" 
             << std::endl
             << "\t\tThe timing delay to insert between frames, measured in milliseconds." << std::endl
-            << "\t\tThis must be a value between 0 and " << MAX_DELAY_MS << ", inclusive, and must be a multiple of 10." << std::endl
+            << "\t\tThis must be a value between 0 and " << MAX_DELAY_MS 
+            << ", inclusive, and must be a multiple of 10." << std::endl
             << "\t\tThe default value is 0." 
             << std::endl
             << std::endl
@@ -133,7 +134,7 @@ namespace args {
         assert (args.input_files.empty());
         
         if (!std::filesystem::exists(dir_name) ||
-                !std::filesystem::is_directory(dir_name)) {
+            !std::filesystem::is_directory(dir_name)) {
             error ("No such directory: " + dir_name);
         }
         else {
@@ -150,6 +151,9 @@ namespace args {
     }
 
     program_arguments parse_arguments(int argc, char **argv) {
+        // See the documentation for getopt/getopt_long for a more detailed
+        // explanation of how this process works.
+
         program_arguments args;
         bool found_file_type = false;
         bool found_delay = false;
@@ -248,16 +252,17 @@ namespace args {
             error("No output file was specified");
         }
 
+        // Check that we have at least one usable input file.
         // If an input directory wasn't specified, add all the
         // non-option arguments to the result as input files.
-        // Afterwards, ensure we've got at least one usable input 
-        // file.
         bool dir_specified = !args.input_files.empty();
         while (optind < argc) {
             std::string arg = argv[optind];
 
             if (dir_specified) {
-                std::cout << "Warning: Unused argument " << arg << ". The specified directory is used for input data instead." << std::endl;
+                std::cout << "Warning: Unused argument " << arg 
+                          << ". The specified directory is used for input data instead." 
+                          << std::endl;
             }
             else {
                 args.input_files.push_back(arg);

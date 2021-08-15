@@ -13,7 +13,7 @@ namespace gif {
     public:
 
         // Creates a new GIF builder which will write its data to
-        // the provided ostream out. The dimensions width and height
+        // the provided ostream, out. The dimensions width and height
         // must be the same for all images that are added to the data
         // stream. The optional delay parameter measures the time between
         // frames in hundreths of a second.

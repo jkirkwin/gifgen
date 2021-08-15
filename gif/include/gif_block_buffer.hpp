@@ -10,10 +10,10 @@ namespace gif {
     
     // Creates data sub-blocks (see the GIF spec for details)
     // by buffering incoming bytes until the maximum sub-block
-    // size is reached, or the data is requested to be packaged
-    // up explicitly.
+    // size is reached, or an explicit request is made to package
+    // the current buffered data.
     // Once a sub-block is packaged, it is written to the output 
-    // file in one operation.    
+    // file in one operation.
     class gif_block_buffer {
     public:
 
@@ -28,8 +28,8 @@ namespace gif {
         gif_block_buffer& operator=(gif_block_buffer&&) = delete;
 
         // Destory the gif_block_buffer. If there is any data 
-        // still in the buffer, it will be written in a smaller
-        // than maximal block before the buffer is destroyed. 
+        // still in the buffer, it will be written out before
+        // the buffer is destroyed. 
         ~gif_block_buffer();
 
         // Inserts a byte into the current sub-block. If this causes
@@ -43,7 +43,8 @@ namespace gif {
         std::size_t current_block_size() const;
 
         // Forces the current (non-full) sub-block to be written 
-        // to the output file as-is.
+        // to the output file as-is. This can be used to write 
+        // empty sub-blocks to terminate a data sub-block stream.
         void write_current_block();
 
     private:
