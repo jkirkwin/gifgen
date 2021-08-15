@@ -224,12 +224,12 @@ namespace lzw {
             symbol_string_type augmented = symbol_buf;
             augmented.push_back(i);
 
-            auto it = dict.find(augmented);
-            if (it != dict.end()) {
-                // Augmented string has been seen before. Use
-                // swap to add i to the buffer without risking
-                // possible double re-allocation of memory from 
-                // duplicate push_back calls. 
+            if (dict.contains(augmented)) {
+                // Augmented string has been seen before. Use swap() to
+                // add symbol i to the end of the working buffer without 
+                // risking a duplicate re-allocation of memory from 
+                // push_back calls to both augmented (above) and 
+                // symbol_buf
                 std::swap(symbol_buf, augmented);
             }
             else {
@@ -303,8 +303,8 @@ namespace lzw {
         }
 
     private:
-        using symbol_string_type = std::vector<input_symbol_type>;
-        using dict_type = std::map<symbol_string_type, code_type>; // TODO consider other options for this. A prefix tree would be much more space-efficient
+        using symbol_string_type = std::string;
+        using dict_type = std::map<symbol_string_type, code_type>;
 
         const static size_type MAX_CODE_SIZE = 12;
         const static size_type MAX_CODE_VALUE = 4095;
@@ -360,7 +360,7 @@ namespace lzw {
             uint16_t max_literal(clear_code() - 1);
             for (uint16_t i = 0; i <= max_literal; ++i)  {
                 input_symbol_type literal(i);
-                symbol_string_type key {literal};
+                symbol_string_type key {static_cast<char>(literal)};
                 code_type value(i);
 
                 // This assertion structure is a little ugly, but lets us
