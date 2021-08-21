@@ -51,7 +51,7 @@ Use the following commands to build the software for actual use:
     cmake --build build --target gifgen
 ```
 
-# Installation
+## Installation
 
 The install target can be used to build and install the software. The gifgen binary and a demo script with some sample image files are placed in the directory ${CMAKE_INSTALL_PREFIX}/bin during install. To install the software in a custom location, specify a custom value for CMAKE_INSTALL_PREFIX. For example, to install a release version of the software in $TMP_DIR and run the demo script, the following commands might be used:
 ``` bash
