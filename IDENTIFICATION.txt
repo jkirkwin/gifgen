@@ -1,7 +1,0 @@
-name "Jamie Kirkwin"
-student_id "V00875987"
-email "jkirkwin@uvic.ca"
-term "2021-05"
-course "SENG475"
-section "T01"
-assignment "cpp_project"
