@@ -7,7 +7,6 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
-#include <format>
 
 uint16_t construct_numeric_field(uint8_t lsb, uint8_t msb) {
     return (uint16_t(msb) << 8) + lsb;
@@ -283,12 +282,6 @@ private:
         std::cout << "Local Color Table: " << std::endl;
 
         auto local_color_table_bytes = 3 * local_color_table_size;
-        auto r_last = binary_content[current_byte_offset + local_color_table_bytes - 3];
-        auto g_last = binary_content[current_byte_offset + local_color_table_bytes - 2];
-        auto b_last = binary_content[current_byte_offset + local_color_table_bytes - 1];
-        std::cout << "\tLast color in color table is " 
-                  << fmt::format("{:#04X} {:#04X} {:#04X}", r_last, g_last, b_last) 
-                  << std::endl;
 
         current_byte_offset += local_color_table_bytes;     
 
@@ -342,7 +335,7 @@ private:
 
         auto last_byte = binary_content.at(current_byte_offset); 
         if (last_byte != TRAILER_BYTE) {
-            error() << fmt::format("Incorrect trailer value: {:#04x}. Expected 0X3B.", last_byte) << std::endl;
+            error() << "Incorrect trailer value" << std::endl;
         }
         else {
             std::cout << "\tFound trailer byte" << std::endl;
