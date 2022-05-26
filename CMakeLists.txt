@@ -73,19 +73,10 @@ target_include_directories(${APP_NAME} PRIVATE ${APP_INCLUDE_DIRS})
 set (APP_LINK_LIBS image_io args gif_builder)
 target_link_libraries(${APP_NAME} ${APP_LINK_LIBS})
 
-# Add the gifgen application and demo script to the install
-# bin directory. Note that a release build should be used for 
-# installing to prevent the application from running incredibly
-# slowly on very large inputs.
+# Add the gifgen application to the install bin directory. 
+# Note that a release build should be used for installing to prevent 
+# the application from running incredibly slowly on very large inputs.
 install(TARGETS ${APP_NAME} DESTINATION bin)
-install(
-    FILES demo 
-    DESTINATION bin
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-                GROUP_READ GROUP_EXECUTE 
-                WORLD_EXECUTE
-)
-install(DIRECTORY sample_images DESTINATION bin)
 
 # Add a target for the degif debugging tool.
 add_executable(degif degif.cpp)

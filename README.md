@@ -31,14 +31,12 @@ The author used the following versions of those libraries to develop the softwar
 | libpng        | v1.6.37 |
 | libjpeg-turbo | v62     |
 
-Other tools like lcov, cmake, and catch2 are also needed. 
+Other tools like lcov, cmake, g++, and catch2 are also needed.
 
 Installing these tools can be difficult depending on your system. See the __Docker__ section below for an easier option.
 
-## Tooling
+### A note on gcc/g++
 To build this project, a GCC installation which which supports both C++17 and C++20 is required. C++20 is used wherever possible, but Boost::GIL's image input/output functionality is not (at the time of writing) compatible with C++20, so C++17 is used to build the component(s) which rely on it.
-
-The software has only been tested on Fedora and RedHat Linux installations. It is expected to run as-is on any recent Linux release, but users may encounter issues on MacOS and Windows.
 
 ## Usage
 
@@ -56,11 +54,11 @@ Use the following commands to build the software for actual use:
 
 ## Installation
 
-The install target can be used to build and install the software. The gifgen binary and a demo script with some sample image files are placed in the directory ${CMAKE_INSTALL_PREFIX}/bin during install. To install the software in a custom location, specify a custom value for CMAKE_INSTALL_PREFIX. For example, to install a release version of the software in $TMP_DIR and run the demo script, the following commands might be used:
+The `install` target can be used to build and install the software. The gifgen binary is placed in the directory `${CMAKE_INSTALL_PREFIX}/bin` during install. To install the software in a custom location, specify a custom value for CMAKE_INSTALL_PREFIX. For example:
 ``` bash
-    cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=$TMP_DIR
+    cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=/usr/local
     cmake --build build --target install
-    $TMP_DIR/bin/demo 
+    /usr/local/bin/gifgen <some args>
 ```
 
 As noted again below, if the software is being installed, the user should specify the RELEASE configuration unless they have a good reason not to. The software can be installed using a different configuration like DEBUG, but it will be far less performant.
