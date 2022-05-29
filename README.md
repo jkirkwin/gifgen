@@ -67,16 +67,11 @@ As noted again below, if the software is being installed, the user should specif
 
 The above installation/running instructions were originally written for the marker of this final project. For other users, a simpler way to build and run the application is provided via Docker.
 
-To build the docker image, use the following command with whatever name/tag you want:
-``` base
-docker build . -t <name>:<tag>
-```
+You can pull an image containing a pre-tested and pre-installed version of `gifgen` with `docker pull jkirkwin/gifgen:latest`.
 
-This will run the tests, build `gifgen`, and install it in `/usr/local/bin`.
-
-To create a container from your image, you might use something like the following (using the same name and tag as in the `docker build` command above):
+To create a container from your image, you might use something like the following:
 ```
-docker run -it --entrypoint bash <name>:<tag> 
+docker run -it jkirkwin/gifgen:latest
 ```
 
 From the shell in the docker container you can run `gifgen` however you like, but you may need to copy files or add volumes if you want to use your own files as inputs.
